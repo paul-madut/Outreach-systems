@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/**
+ * Tokens live here rather than in a tailwind.config, which is the Tailwind v4
+ * CSS-first convention. A dense, quiet palette: this is a working tool that
+ * gets read many times a day, so contrast carries meaning rather than decoration.
+ */
+@theme {
+  --color-canvas: #fbfbfa;
+  --color-surface: #ffffff;
+  --color-raised: #f3f3f1;
+  --color-line: #e3e3df;
+  --color-line-strong: #c9c9c2;
+  --color-ink: #1a1a18;
+  --color-muted: #6b6b64;
+  --color-faint: #9a9a92;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-accent: #1f5e46;
+  --color-accent-soft: #e6f0eb;
+
+  /* Status colours. Each one means one thing, everywhere. */
+  --color-ok: #1f5e46;
+  --color-ok-soft: #e6f0eb;
+  --color-warn: #8a5a12;
+  --color-warn-soft: #fbf0dd;
+  --color-danger: #9b2c2c;
+  --color-danger-soft: #fbe9e9;
+  --color-info: #2b4c7e;
+  --color-info-soft: #e8eefa;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  @theme {
+    --color-canvas: #16161a;
+    --color-surface: #1c1c21;
+    --color-raised: #24242a;
+    --color-line: #2f2f36;
+    --color-line-strong: #43434c;
+    --color-ink: #ececef;
+    --color-muted: #a0a0aa;
+    --color-faint: #6e6e78;
+
+    --color-accent: #6fbf9b;
+    --color-accent-soft: #1b2f27;
+
+    --color-ok: #6fbf9b;
+    --color-ok-soft: #1b2f27;
+    --color-warn: #d9a74a;
+    --color-warn-soft: #302718;
+    --color-danger: #e08585;
+    --color-danger-soft: #331d1d;
+    --color-info: #8ab0e8;
+    --color-info-soft: #1b2436;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+/* Tabular numerals so counts line up column to column. */
+.nums {
+  font-variant-numeric: tabular-nums;
 }
