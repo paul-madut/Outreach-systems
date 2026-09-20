@@ -1,0 +1,9 @@
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
+
+# Vitest needs esbuild's postinstall to fetch its platform binary, and
+# better-sqlite3 needs its native binding.
+onlyBuiltDependencies:
+  - esbuild
+  - better-sqlite3
