@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:suppressions": "tsx scripts/seed-suppressions.ts",
-    "import:csv": "tsx scripts/import-csv.ts"
+    "import:csv": "tsx scripts/import-csv.ts",
+    "worker": "tsx scripts/worker.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
