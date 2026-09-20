@@ -79,6 +79,32 @@ export function splitName(name: string | null | undefined): {
   return { first: parts[0], last: parts.slice(1).join(" ") };
 }
 
+/**
+ * First sentence of a longer value, exposed as `<field>_first`.
+ *
+ * The research sheets quote prospects verbatim, and the newer batches run to
+ * 400 characters. Dropping one whole into an email pushes it past 150 words,
+ * and a long cold email does not get read. Cutting at a sentence boundary and
+ * marking the cut keeps the quote faithful while staying short, which matters
+ * because the quote is the proof the email rests on.
+ *
+ * Returns null when there is nothing to shorten, so the field simply does not
+ * appear rather than duplicating the original.
+ */
+export function firstSentence(value: string, minLength = 40): string | null {
+  const text = value.trim().replace(/\s+/g, " ");
+  if (text.length <= minLength) return null;
+
+  // Sentence end, but not on a decimal or a common abbreviation.
+  const match = /^(.{40,}?[.!?])(?=\s+[A-Z(])/.exec(text);
+  if (!match) return null;
+
+  const sentence = match[1].trim();
+  if (sentence.length >= text.length) return null;
+
+  return `${sentence.replace(/[.!?]$/, "")}...`;
+}
+
 function stringify(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
@@ -97,12 +123,19 @@ function stringify(value: unknown): string {
 export function buildContext(sources: ContextSources): TemplateContext {
   const context: TemplateContext = {};
 
-  for (const [key, value] of Object.entries(sources.prospect.custom ?? {})) {
-    context[toTemplateKey(key)] = stringify(value);
-  }
-  for (const [key, value] of Object.entries(sources.contact.custom ?? {})) {
-    context[toTemplateKey(key)] = stringify(value);
-  }
+  const addCustom = (custom: Record<string, unknown> | null | undefined) => {
+    for (const [rawKey, rawValue] of Object.entries(custom ?? {})) {
+      const key = toTemplateKey(rawKey);
+      const value = stringify(rawValue);
+      context[key] = value;
+
+      const short = firstSentence(value);
+      if (short) context[`${key}_first`] = short;
+    }
+  };
+
+  addCustom(sources.prospect.custom);
+  addCustom(sources.contact.custom);
 
   const { first, last } = splitName(sources.contact.name);
 

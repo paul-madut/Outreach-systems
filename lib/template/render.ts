@@ -14,6 +14,45 @@ import type { TemplateContext } from "./context";
 
 const FIELD = /\{\{\s*([a-zA-Z0-9_]+)\s*(?:\|([^}]*))?\}\}/g;
 
+/**
+ * Conditional sections.
+ *
+ *   {{#quote}}Your page says "{{quote}}".{{/quote}}   include when present
+ *   {{^quote}}...{{/quote}}                            include when absent
+ *
+ * Research is uneven. Some prospects have a damning verbatim quote, others
+ * only have a payment list, and a line that reads well with a quote reads
+ * broken without one. Without sections the only options are a template that
+ * fails to render for half the list, or one so generic it says nothing.
+ */
+const SECTION = /\{\{([#^])\s*([a-zA-Z0-9_]+)\s*\}\}\n?([\s\S]*?)\{\{\/\s*\2\s*\}\}\n?/g;
+
+/** Nesting is allowed, so this runs until nothing changes. */
+function expandSections(template: string, context: TemplateContext): string {
+  let output = template;
+
+  for (let pass = 0; pass < 10; pass += 1) {
+    const next = output.replace(SECTION, (_match, kind: string, key: string, inner: string) => {
+      const present = Boolean(context[key]?.trim());
+      return (kind === "#" ? present : !present) ? inner : "";
+    });
+
+    if (next === output) break;
+    output = next;
+  }
+
+  return output;
+}
+
+/**
+ * A dropped section leaves the blank lines that surrounded it. Three or more
+ * newlines never mean anything in a plain text email, so they collapse to a
+ * paragraph break.
+ */
+function tidyWhitespace(text: string): string {
+  return text.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 export interface RenderOk {
   ok: true;
   text: string;
@@ -30,7 +69,12 @@ export type RenderResult = RenderOk | RenderFailure;
 export function render(template: string, context: TemplateContext): RenderResult {
   const missing: string[] = [];
 
-  const text = template.replace(FIELD, (_match, rawKey: string, fallback?: string) => {
+  // Sections first. A field inside a section that was dropped must not count
+  // as missing, or a template would fail for exactly the prospects it was
+  // written to handle gracefully.
+  const expanded = expandSections(template, context);
+
+  const text = expanded.replace(FIELD, (_match, rawKey: string, fallback?: string) => {
     const key = rawKey.trim();
     const value = context[key];
 
@@ -50,7 +94,7 @@ export function render(template: string, context: TemplateContext): RenderResult
   if (missing.length > 0) {
     return { ok: false, missing };
   }
-  return { ok: true, text };
+  return { ok: true, text: tidyWhitespace(text) };
 }
 
 /** Every field a template references, whether or not it resolves. */
@@ -58,6 +102,16 @@ export function referencedFields(template: string): string[] {
   const fields: string[] = [];
   for (const match of template.matchAll(FIELD)) {
     const key = match[1].trim();
+    if (!fields.includes(key)) fields.push(key);
+  }
+  return fields;
+}
+
+/** Fields used only to switch a section on or off. */
+export function sectionFields(template: string): string[] {
+  const fields: string[] = [];
+  for (const match of template.matchAll(/\{\{[#^]\s*([a-zA-Z0-9_]+)\s*\}\}/g)) {
+    const key = match[1];
     if (!fields.includes(key)) fields.push(key);
   }
   return fields;

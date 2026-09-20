@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { buildContext, splitName, toTemplateKey } from "@/lib/template/context";
-import { referencedFields, render, renderMessage } from "@/lib/template/render";
+import {
+  buildContext,
+  firstSentence,
+  splitName,
+  toTemplateKey,
+} from "@/lib/template/context";
+import {
+  referencedFields,
+  render,
+  renderMessage,
+  sectionFields,
+} from "@/lib/template/render";
 import { DEFAULT_POLICY, hasBlockingFindings, lintMessage } from "@/lib/template/lint";
 
 const sender = { name: "Paul Madut", email: "paul@example.com" };
@@ -197,5 +207,168 @@ describe("lintMessage", () => {
       maxWords: 120,
     });
     expect(findings.some((f) => f.rule === "banned-claim")).toBe(true);
+  });
+});
+
+describe("conditional sections", () => {
+  it("includes a section when the field has a value", () => {
+    const result = render('Hi.\n\n{{#quote}}Your page says "{{quote}}".{{/quote}}\n\nThanks.', {
+      quote: "We only accept crypto",
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.text).toContain('Your page says "We only accept crypto".');
+  });
+
+  it("drops a section when the field is missing, without failing the render", () => {
+    // The point of sections: research is uneven, and a template written for a
+    // prospect with a quote must still work for one without.
+    const result = render('Hi.\n\n{{#quote}}Your page says "{{quote}}".{{/quote}}\n\nThanks.', {});
+    expect(result).toEqual({ ok: true, text: "Hi.\n\nThanks." });
+  });
+
+  it("drops a section when the field is present but blank", () => {
+    const result = render("A{{#q}} and {{q}}{{/q}}", { q: "   " });
+    expect(result).toEqual({ ok: true, text: "A" });
+  });
+
+  it("supports an inverted section for the fallback wording", () => {
+    const template = "{{#quote}}Your page says it.{{/quote}}{{^quote}}Your checkout shows it.{{/quote}}";
+    expect(render(template, { quote: "x" })).toEqual({ ok: true, text: "Your page says it." });
+    expect(render(template, {})).toEqual({ ok: true, text: "Your checkout shows it." });
+  });
+
+  it("does not count a field inside a dropped section as missing", () => {
+    const result = render("Hi.{{#quote}} {{quote}} and {{second_quote}}{{/quote}}", {});
+    expect(result.ok).toBe(true);
+  });
+
+  it("still fails on a missing field outside any section", () => {
+    const result = render("Hi {{first_name}}.{{#quote}}{{quote}}{{/quote}}", {});
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.missing).toEqual(["first_name"]);
+  });
+
+  it("handles nesting", () => {
+    const template = "{{#a}}A{{#b}}B{{/b}}{{/a}}";
+    expect(render(template, { a: "1", b: "1" })).toEqual({ ok: true, text: "AB" });
+    expect(render(template, { a: "1" })).toEqual({ ok: true, text: "A" });
+    expect(render(template, {})).toEqual({ ok: true, text: "" });
+  });
+
+  it("collapses the gap a dropped section leaves behind", () => {
+    const template = "One.\n\n{{#missing}}Two.{{/missing}}\n\nThree.";
+    const result = render(template, {});
+    expect(result.ok).toBe(true);
+    // Not "One.\n\n\n\nThree."
+    if (result.ok) expect(result.text).toBe("One.\n\nThree.");
+  });
+
+  it("lists section fields separately from merge fields", () => {
+    expect(sectionFields("{{#quote}}{{quote}}{{/quote}} {{company}}")).toEqual(["quote"]);
+  });
+});
+
+describe("style rules ignore quoted text", () => {
+  // These emails quote the prospect's own page. Their punctuation is evidence,
+  // not a mistake for Paul to fix, and warning about it teaches him to ignore
+  // warnings entirely.
+  const quoted =
+    'Your page says "Bank transfer only; the order number is the reference!".\n\nWorth a look?';
+
+  it("does not warn on a semicolon inside a quote", () => {
+    expect(lintMessage("Quick question", quoted).some((f) => f.rule === "semicolon")).toBe(false);
+  });
+
+  it("does not warn on an exclamation inside a quote", () => {
+    expect(lintMessage("Quick question", quoted).some((f) => f.rule === "exclamation")).toBe(false);
+  });
+
+  it("still warns when Paul writes one himself", () => {
+    const own = 'Your page says "cards are off". That is fixable; let me show you!';
+    const rules = lintMessage("Quick question", own).map((f) => f.rule);
+    expect(rules).toContain("semicolon");
+    expect(rules).toContain("exclamation");
+  });
+
+  it("still blocks an em dash inside a quote, because it goes out either way", () => {
+    const findings = lintMessage("Quick question", 'They say "cards — gone".');
+    expect(findings.some((f) => f.rule === "no-unicode-dash")).toBe(true);
+  });
+});
+
+describe("footer is excluded from the word count", () => {
+  const footer = "Paul M\npaymentswithpaul.com\n\nReply with stop and I will not email you again.";
+
+  it("does not count boilerplate against the target", () => {
+    // 118 words of body, plus an 11 word footer. Only the footer pushes it over.
+    const body = `${Array.from({ length: 118 }, () => "word").join(" ")}\n\n${footer}`;
+    expect(lintMessage("Hi", body, DEFAULT_POLICY, { footer }).some((f) => f.rule === "too-long")).toBe(
+      false
+    );
+    // Without telling the linter about the footer, the same text trips it.
+    expect(lintMessage("Hi", body).some((f) => f.rule === "too-long")).toBe(true);
+  });
+});
+
+describe("firstSentence", () => {
+  it("cuts a long verbatim quote at a sentence boundary and marks the cut", () => {
+    // A real quote from the peptide research tab.
+    const quote =
+      "We accept bank transfer payments. After placing your order, you will see our bank details (PAYID, BSB, and Account Number). Please use your order number as the payment reference.";
+    expect(firstSentence(quote)).toBe(
+      "We accept bank transfer payments. After placing your order, you will see our bank details (PAYID, BSB, and Account Number)..."
+    );
+  });
+
+  it("keeps a question plus its answer together, which is the sharpest form", () => {
+    const quote =
+      "Which payment methods do you accept? Interac e-Transfer only. This keeps card processing fees out of the vial price.";
+    expect(firstSentence(quote)).toBe(
+      "Which payment methods do you accept? Interac e-Transfer only..."
+    );
+  });
+
+  it("returns null when there is nothing worth shortening", () => {
+    expect(firstSentence("Bank wire only.")).toBeNull();
+    expect(firstSentence("We only accept crypto at this time")).toBeNull();
+    expect(firstSentence("")).toBeNull();
+  });
+
+  it("does not cut on a decimal point", () => {
+    const text =
+      "Card rules 5.1 apply to every merchant in this category without exception whatsoever.";
+    expect(firstSentence(text)).toBeNull();
+  });
+});
+
+describe("derived _first fields", () => {
+  it("exposes a shortened form alongside the full value", () => {
+    const context = buildContext({
+      contact: { email: "a@b.com" },
+      prospect: {
+        custom: {
+          "Verbatim quote (the hook)":
+            "We accept bank transfer payments. After placing your order, you will see our bank details. Use your order number.",
+        },
+      },
+      sender,
+    });
+
+    expect(context.verbatim_quote_the_hook).toContain("Use your order number");
+    expect(context.verbatim_quote_the_hook_first).toContain("...");
+    expect(context.verbatim_quote_the_hook_first!.length).toBeLessThan(
+      context.verbatim_quote_the_hook.length
+    );
+  });
+
+  it("omits the field entirely when the value is already short", () => {
+    const context = buildContext({
+      contact: { email: "a@b.com" },
+      prospect: { custom: { quote: "Bank wire only." } },
+      sender,
+    });
+
+    // Absent rather than duplicated, so a template can branch on it.
+    expect(context.quote_first).toBeUndefined();
   });
 });

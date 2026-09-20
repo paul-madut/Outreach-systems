@@ -391,3 +391,38 @@ describe("matchInbound", () => {
     expect(hit).toBeNull();
   });
 });
+
+describe("curt refusals", () => {
+  // The footer asks people to reply with "stop", so this is what actually
+  // arrives. None of these contain a phrase from the long list.
+  it.each(["stop", "Stop.", "STOP", "unsubscribe", "remove", "No thanks", "not interested"])(
+    "treats %j as an opt-out",
+    (text) => {
+      const result = classifyInbound(
+        message({ headers: { from: "owner@store.com", subject: "Re: Quick question" }, text })
+      );
+      expect(result.classification).toBe("unsubscribe");
+      expect(result.suppress).toBe("owner@store.com");
+    }
+  );
+
+  it("does not catch the word inside a real reply", () => {
+    const result = classifyInbound(
+      message({
+        headers: { from: "owner@store.com", subject: "Re: Quick question" },
+        text: "We had to stop taking cards in March, so yes this is relevant. What would it cost?",
+      })
+    );
+    expect(result.classification).toBe("reply");
+  });
+
+  it("ignores a curt word buried in quoted history", () => {
+    const result = classifyInbound(
+      message({
+        headers: { from: "owner@store.com", subject: "Re: Quick question" },
+        text: "Sounds good.\n\n> Reply with stop and I will not email you again.",
+      })
+    );
+    expect(result.classification).toBe("reply");
+  });
+});

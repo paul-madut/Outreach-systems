@@ -74,6 +74,16 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+/**
+ * Remove text inside double quotes, straight or curly.
+ *
+ * Used only by the style rules. A quoted sentence is the prospect's, and its
+ * punctuation is evidence rather than a mistake to correct.
+ */
+function stripQuotedSpans(text: string): string {
+  return text.replace(/"[^"]*"/g, '""').replace(/\u201c[^\u201d]*\u201d/g, "");
+}
+
 function excerptAround(text: string, index: number, width = 40): string {
   const start = Math.max(0, index - width);
   const end = Math.min(text.length, index + width);
@@ -88,14 +98,33 @@ function excerptAround(text: string, index: number, width = 40): string {
  * `subject` and `body` are checked together because a banned claim in a subject
  * line is exactly as damaging as one in the body.
  */
+export interface LintOptions {
+  /**
+   * The campaign footer, if it is already appended to `body`.
+   *
+   * Excluded from the word count only. It is the same boilerplate on every
+   * message, so counting it makes a short email look long and pushes the real
+   * copy shorter than it needs to be. Every other rule still sees it, because
+   * an em dash or a bad claim in the footer goes out just the same.
+   */
+  footer?: string | null;
+}
+
 export function lintMessage(
   subject: string,
   body: string,
-  policy: LintPolicy = DEFAULT_POLICY
+  policy: LintPolicy = DEFAULT_POLICY,
+  options: LintOptions = {}
 ): LintFinding[] {
   const findings: LintFinding[] = [];
   const combined = `${subject}\n${body}`;
   const lower = combined.toLowerCase();
+
+  const footer = options.footer?.trim();
+  const bodyWithoutFooter =
+    footer && body.trimEnd().endsWith(footer)
+      ? body.trimEnd().slice(0, -footer.length)
+      : body;
 
   // --- blocking ---
 
@@ -160,16 +189,23 @@ export function lintMessage(
 
   // --- warnings ---
 
-  const words = countWords(body);
+  const words = countWords(bodyWithoutFooter);
   if (words > policy.maxWords) {
     findings.push({
       rule: "too-long",
       severity: "warn",
-      message: `Body is ${words} words, over the ${policy.maxWords} word target.`,
+      message: `Body is ${words} words, over the ${policy.maxWords} word target${
+        footer ? ", not counting the footer" : ""
+      }.`,
     });
   }
 
-  if (combined.includes("!")) {
+  // Style rules judge Paul's own writing, so quoted text is excluded. These
+  // emails quote the prospect's own page verbatim, and their punctuation is
+  // not his to fix. Warning about it anyway trains him to ignore warnings.
+  const unquoted = stripQuotedSpans(combined);
+
+  if (unquoted.includes("!")) {
     findings.push({
       rule: "exclamation",
       severity: "warn",
@@ -177,7 +213,7 @@ export function lintMessage(
     });
   }
 
-  if (combined.includes(";")) {
+  if (unquoted.includes(";")) {
     findings.push({
       rule: "semicolon",
       severity: "warn",
@@ -186,13 +222,13 @@ export function lintMessage(
   }
 
   for (const opener of STOCK_OPENERS) {
-    const index = lower.indexOf(opener);
+    const index = unquoted.toLowerCase().indexOf(opener);
     if (index !== -1) {
       findings.push({
         rule: "stock-opener",
         severity: "warn",
         message: `Reads as templated outreach: "${opener}".`,
-        excerpt: excerptAround(combined, index),
+        excerpt: excerptAround(unquoted, index),
       });
       break;
     }

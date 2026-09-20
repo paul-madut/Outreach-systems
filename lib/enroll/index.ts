@@ -247,7 +247,9 @@ export function dryRender(
     }
 
     const body = withFooter(output.body, campaign);
-    const findings = lintMessage(output.subject, body, policy);
+    const findings = lintMessage(output.subject, body, policy, {
+      footer: campaign.footer_template,
+    });
     const message: RenderedMessage = {
       contactId: contact.contactId,
       company: contact.company,

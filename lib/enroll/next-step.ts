@@ -180,7 +180,9 @@ export function createNextStep(
   const footer = campaign.footer_template?.trim();
   const body = footer ? `${rendered.body.trimEnd()}\n\n${footer}` : rendered.body;
 
-  const findings = lintMessage(subject, body, lintPolicyOf(campaign));
+  const findings = lintMessage(subject, body, lintPolicyOf(campaign), {
+    footer: campaign.footer_template,
+  });
   if (hasBlockingFindings(findings)) {
     const blocking = findings.filter((f) => f.severity === "block").map((f) => f.message);
     return skip(`Step ${nextNumber} failed the content check: ${blocking.join(" ")}`);

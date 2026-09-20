@@ -1,0 +1,16 @@
+Might not be relevant{{#first_name}} {{first_name}}{{/first_name}}, but nearly every {{vertical}} store I look at is running without a card rail.
+
+Two things follow. Every order turns into manual chasing, and the buyers who only use cards leave.
+
+Is that the case for {{company}}?
+
+{{#verbatim_quote_the_hook_first}}
+Your own page is what made me look. It says "{{verbatim_quote_the_hook_first}}".
+
+{{/verbatim_quote_the_hook_first}}{{^verbatim_quote_the_hook_first}}{{#verbatim_quote_the_hook}}
+Your own page is what made me look. It says "{{verbatim_quote_the_hook}}".
+
+{{/verbatim_quote_the_hook}}{{/verbatim_quote_the_hook_first}}
+Out of the blue, I know. I build the legal set and the payment stack high-risk stores get underwritten on, so cards stay on instead of getting pulled a month in.
+
+Want me to go through the rest of your site and send back what else an underwriter would flag?

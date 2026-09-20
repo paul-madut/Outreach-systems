@@ -152,11 +152,30 @@ function looksLikeAutoReply(message: InboundMessage): boolean {
   return false;
 }
 
+/**
+ * A curt one-word refusal.
+ *
+ * The footer asks people to reply with "stop", and that is what they send:
+ * "stop", "Stop.", "no thanks", "remove". None of those contain a phrase from
+ * the list above, and missing one means continuing to email somebody who
+ * plainly said no. Length-bounded so a real reply that happens to use the word
+ * ("we had to stop taking cards in March") is not caught.
+ */
+const CURT_REFUSAL = /^\W*(stop|unsubscribe|remove|no|no thanks|not interested|opt out)\W*$/i;
+const CURT_REFUSAL_MAX_CHARS = 40;
+
 function findUnsubscribeIntent(message: InboundMessage): string | null {
-  const body = unquotedText(message.text).toLowerCase();
+  const unquoted = unquotedText(message.text).trim();
+  const body = unquoted.toLowerCase();
+
   for (const phrase of UNSUBSCRIBE_PHRASES) {
     if (body.includes(phrase)) return phrase;
   }
+
+  if (unquoted.length <= CURT_REFUSAL_MAX_CHARS && CURT_REFUSAL.test(unquoted)) {
+    return unquoted;
+  }
+
   return null;
 }
 
