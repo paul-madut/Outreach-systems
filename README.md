@@ -118,6 +118,7 @@ Three hard bounces in a day pauses the mailbox.
 | `pnpm worker` | One pass: send what is due, then poll for replies |
 | `pnpm import:csv <file>` | Import a sheet export. Add `--commit` to write |
 | `pnpm mailbox list\|add\|check\|pause\|resume` | Manage sending identities |
+| `pnpm campaign list\|create\|step\|preview\|enroll\|activate\|pause` | Build and run a sequence |
 | `pnpm seed:suppressions [file]` | Load a domain exclude list |
 | `pnpm schedule install\|status\|uninstall` | The launchd job |
 | `pnpm demo:seed` | Fill a throwaway database so the dashboard has something in it |

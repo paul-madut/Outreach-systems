@@ -1,0 +1,277 @@
+#!/usr/bin/env tsx
+/**
+ * Create and run campaigns.
+ *
+ * Usage:
+ *   pnpm campaign list
+ *   pnpm campaign create --name "high-risk payments" --mailbox payments
+ *   pnpm campaign step --campaign "high-risk payments" --step 1 \
+ *       --subject "Quick question" --body-file step1.txt
+ *   pnpm campaign preview --campaign "high-risk payments"
+ *   pnpm campaign enroll  --campaign "high-risk payments" [--grade A] [--limit 20] [--commit]
+ *   pnpm campaign activate|pause --campaign "high-risk payments"
+ *
+ * A step whose subject and body are literally {{subject}} and {{body}} sends
+ * the draft written per row in the sheet. Anything else is a shared template.
+ */
+import { readFileSync } from "node:fs";
+import { getDb } from "@/lib/db";
+import {
+  createCampaign,
+  getCampaign,
+  listSteps,
+  setCampaignStatus,
+  upsertStep,
+} from "@/lib/campaign";
+import { dryRender, enrollContacts, previewEnrollment } from "@/lib/enroll";
+import { listCampaigns } from "@/lib/queries";
+
+function flag(args: string[], name: string): string | undefined {
+  const index = args.indexOf(`--${name}`);
+  return index >= 0 ? args[index + 1] : undefined;
+}
+
+function campaignIdFor(name: string): number {
+  const row = getDb().prepare("select id from campaigns where name = ?").get(name) as
+    | { id: number }
+    | undefined;
+  if (!row) {
+    console.error(`No campaign called "${name}". Run: pnpm campaign list`);
+    process.exit(1);
+  }
+  return row.id;
+}
+
+function list(): void {
+  const rows = listCampaigns(getDb());
+  if (rows.length === 0) {
+    console.log("No campaigns yet. Create one with: pnpm campaign create --help");
+    return;
+  }
+
+  for (const row of rows) {
+    console.log(`\n${row.name}  (${row.status})  sends from ${row.mailbox}`);
+    console.log(
+      `  enrolled ${row.enrolled}  drafts ${row.drafts}  scheduled ${row.scheduled}  ` +
+        `sent ${row.sent}  replied ${row.replied}  bounced ${row.bounced}`
+    );
+    const steps = listSteps(getDb(), row.id);
+    if (steps.length === 0) {
+      console.log("  no steps yet - nothing can be enrolled until step 1 exists");
+    }
+    for (const step of steps) {
+      const delay = step.step_number === 1 ? "immediately" : `+${step.delay_days}d`;
+      console.log(`  step ${step.step_number} (${delay}): ${step.subject_template}`);
+    }
+  }
+}
+
+function create(args: string[]): void {
+  const name = flag(args, "name");
+  const mailboxLabel = flag(args, "mailbox");
+
+  if (!name || !mailboxLabel) {
+    console.error("Need --name and --mailbox.");
+    process.exit(1);
+  }
+
+  const mailbox = getDb().prepare("select id from mailboxes where label = ?").get(mailboxLabel) as
+    | { id: number }
+    | undefined;
+
+  if (!mailbox) {
+    console.error(`No mailbox called "${mailboxLabel}". Run: pnpm mailbox list`);
+    process.exit(1);
+  }
+
+  const id = createCampaign(getDb(), {
+    mailboxId: mailbox.id,
+    name,
+    timezone: flag(args, "timezone") ?? "America/Toronto",
+    windowStart: flag(args, "window-start") ?? "09:00",
+    windowEnd: flag(args, "window-end") ?? "16:00",
+    newPerDay: Number(flag(args, "per-day") ?? 10),
+    autoApprove: args.includes("--auto-approve"),
+    footerTemplate: flag(args, "footer-file")
+      ? readFileSync(flag(args, "footer-file")!, "utf8").trim()
+      : null,
+  });
+
+  console.log(`Created campaign "${name}" (id ${id}), status draft.`);
+  console.log("Add step 1, then activate it:");
+  console.log(`  pnpm campaign step --campaign "${name}" --step 1 --subject "..." --body-file body.txt`);
+}
+
+function step(args: string[]): void {
+  const name = flag(args, "campaign");
+  const stepNumber = Number(flag(args, "step") ?? 1);
+  const subject = flag(args, "subject");
+  const bodyFile = flag(args, "body-file");
+  const body = bodyFile ? readFileSync(bodyFile, "utf8").trimEnd() : flag(args, "body");
+
+  if (!name || !subject || !body) {
+    console.error("Need --campaign, --subject and one of --body or --body-file.");
+    process.exit(1);
+  }
+
+  upsertStep(getDb(), {
+    campaignId: campaignIdFor(name),
+    stepNumber,
+    subjectTemplate: subject,
+    bodyTemplate: body,
+    delayDays: Number(flag(args, "delay") ?? (stepNumber === 1 ? 0 : 3)),
+  });
+
+  console.log(`Saved step ${stepNumber} on "${name}".`);
+  if (stepNumber > 1) {
+    console.log("Follow-ups thread onto step 1, so their subject is set to Re: <step 1 subject>.");
+  }
+}
+
+/** Show who would be enrolled and what they would receive, without writing. */
+function preview(args: string[]): void {
+  const name = flag(args, "campaign");
+  if (!name) {
+    console.error("Need --campaign.");
+    process.exit(1);
+  }
+
+  const db = getDb();
+  const campaignId = campaignIdFor(name);
+  const { eligible, ineligible } = previewEnrollment(db, campaignId);
+
+  console.log(`\n${eligible.length} eligible, ${ineligible.length} not.`);
+
+  const reasons = new Map<string, number>();
+  for (const row of ineligible) {
+    const key = row.reason.split(":")[0];
+    reasons.set(key, (reasons.get(key) ?? 0) + 1);
+  }
+  for (const [reason, count] of [...reasons].sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${String(count).padStart(4)}  ${reason}`);
+  }
+
+  if (eligible.length === 0) return;
+
+  const render = dryRender(db, campaignId, eligible.slice(0, Number(flag(args, "limit") ?? 3)));
+
+  if (render.failed.length > 0) {
+    console.log(`\n${render.failed.length} would not render:`);
+    for (const row of render.failed.slice(0, 5)) {
+      console.log(`  ${row.company}: missing ${row.missing.join(", ")}`);
+    }
+  }
+  if (render.blocked.length > 0) {
+    console.log(`\n${render.blocked.length} blocked by the content check:`);
+    for (const row of render.blocked.slice(0, 5)) {
+      console.log(`  ${row.company}: ${row.findings.map((f) => f.message).join(" ")}`);
+    }
+  }
+
+  for (const message of render.rendered.slice(0, 2)) {
+    console.log(`\n--- ${message.company} <${message.email}> ---`);
+    console.log(`Subject: ${message.subject}\n`);
+    console.log(message.body);
+    for (const finding of message.findings) {
+      console.log(`  [${finding.severity}] ${finding.message}`);
+    }
+  }
+}
+
+function enroll(args: string[]): void {
+  const name = flag(args, "campaign");
+  if (!name) {
+    console.error("Need --campaign.");
+    process.exit(1);
+  }
+
+  const db = getDb();
+  const campaignId = campaignIdFor(name);
+  const grade = flag(args, "grade");
+  const limit = flag(args, "limit") ? Number(flag(args, "limit")) : undefined;
+  const commit = args.includes("--commit");
+
+  let contactIds: number[] | undefined;
+  if (grade || limit) {
+    const rows = db
+      .prepare(
+        `select c.id from contacts c join prospects p on p.id = c.prospect_id
+          where c.channel = 'email' and (? is null or p.grade = ?)
+          order by case p.grade when 'A' then 0 when 'B' then 1 when 'C' then 2 else 3 end, p.company
+          limit ?`
+      )
+      .all(grade ?? null, grade ?? null, limit ?? 100000) as { id: number }[];
+    contactIds = rows.map((row) => row.id);
+  }
+
+  const result = enrollContacts(db, campaignId, { contactIds, dryRun: !commit });
+
+  console.log(`\n${commit ? "Enrolled" : "Would enrol"} ${result.enrolled}.`);
+  console.log(`  ${result.drafted} waiting for review, ${result.scheduled} scheduled directly`);
+  console.log(`  ${result.skipped.length} skipped, ${result.failed.length} would not render, ${result.blocked.length} blocked`);
+
+  if (result.firstSendAt) {
+    console.log(`  first send ${result.firstSendAt.toISOString()}`);
+    console.log(`  last send  ${result.lastSendAt!.toISOString()}`);
+  }
+
+  for (const row of result.blocked.slice(0, 5)) {
+    console.log(`  BLOCKED ${row.company}: ${row.findings.map((f) => f.message).join(" ")}`);
+  }
+
+  const campaign = getCampaign(db, campaignId);
+  if (commit && campaign.status === "draft") {
+    console.log(`\nThe campaign is still a draft, so nothing will send. Activate it:`);
+    console.log(`  pnpm campaign activate --campaign "${name}"`);
+  }
+  if (!commit) console.log("\nNothing was written. Re-run with --commit.");
+}
+
+function setStatus(args: string[], status: "active" | "paused"): void {
+  const name = flag(args, "campaign");
+  if (!name) {
+    console.error("Need --campaign.");
+    process.exit(1);
+  }
+
+  const db = getDb();
+  const campaignId = campaignIdFor(name);
+
+  if (status === "active" && listSteps(db, campaignId).length === 0) {
+    console.error("This campaign has no steps, so there is nothing to send.");
+    process.exit(1);
+  }
+
+  setCampaignStatus(db, campaignId, status);
+  console.log(`Campaign "${name}" is now ${status}.`);
+}
+
+const [command, ...args] = process.argv.slice(2);
+
+switch (command) {
+  case "list":
+  case undefined:
+    list();
+    break;
+  case "create":
+    create(args);
+    break;
+  case "step":
+    step(args);
+    break;
+  case "preview":
+    preview(args);
+    break;
+  case "enroll":
+    enroll(args);
+    break;
+  case "activate":
+    setStatus(args, "active");
+    break;
+  case "pause":
+    setStatus(args, "paused");
+    break;
+  default:
+    console.error(`Unknown command "${command}". Try list, create, step, preview, enroll, activate or pause.`);
+    process.exit(1);
+}
