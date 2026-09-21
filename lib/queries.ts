@@ -284,6 +284,8 @@ export interface HealthStatus {
   failed: number;
   scheduled: number;
   unhandledReplies: number;
+  /** Inbound mail that matched nothing we sent. Mostly ordinary personal mail. */
+  unmatched: number;
   pausedMailboxes: { label: string; reason: string | null }[];
   /** Setup state, so the interface can say what is still missing. */
   mailboxes: number;
@@ -315,9 +317,20 @@ export function getHealth(db: Db): HealthStatus {
     uncertain: one<{ n: number }>("select count(*) as n from messages where status = 'uncertain'").n,
     failed: one<{ n: number }>("select count(*) as n from messages where status = 'failed'").n,
     scheduled: one<{ n: number }>("select count(*) as n from messages where status = 'scheduled'").n,
+    /*
+      Deliberately NOT counting 'unmatched'. Polling a personal mailbox means
+      every newsletter and receipt Paul receives lands here as unmatched: the
+      first real poll logged 107 of them and not one was about outreach.
+      Counting those put 107 on the nav badge with zero things to do, which
+      is exactly how a badge stops being read at all. Unmatched is a bucket
+      to browse; a reply or an opt-out is work.
+    */
     unhandledReplies: one<{ n: number }>(
       `select count(*) as n from inbound_messages
-        where handled = 0 and classification in ('reply', 'unsubscribe', 'unmatched')`
+        where handled = 0 and classification in ('reply', 'unsubscribe')`
+    ).n,
+    unmatched: one<{ n: number }>(
+      "select count(*) as n from inbound_messages where handled = 0 and classification = 'unmatched'"
     ).n,
     pausedMailboxes: db
       .prepare("select label, paused_reason as reason from mailboxes where status = 'paused'")

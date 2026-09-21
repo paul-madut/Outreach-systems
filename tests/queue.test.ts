@@ -218,7 +218,10 @@ describe("claimDueMessages", () => {
       windowStart: "09:00",
       windowEnd: "16:00",
     });
-    seedMessage(db, seeded);
+    // Explicit, because seedMessage otherwise slots for the real clock and
+    // these assertions use a fixed instant. Left to default, the test only
+    // passed when it happened to run before 10:00 UTC.
+    seedMessage(db, seeded, { scheduledAt: new Date("2026-09-20T00:00:00Z") });
 
     // 03:00 UTC is outside a 09:00-16:00 UTC window.
     const beforeOpen = new Date("2026-09-21T03:00:00Z");
@@ -231,7 +234,7 @@ describe("claimDueMessages", () => {
   it("will not send on a day the campaign excludes", () => {
     // 2026-09-21 is a Monday, 2026-09-20 a Sunday.
     const seeded = seedCampaign(db, { timezone: "UTC", sendDays: [1, 2, 3, 4, 5] });
-    seedMessage(db, seeded);
+    seedMessage(db, seeded, { scheduledAt: new Date("2026-09-19T00:00:00Z") });
 
     expect(
       claimDueMessages(db, { limit: 10, now: new Date("2026-09-20T10:00:00Z") })
@@ -247,7 +250,7 @@ describe("claimDueMessages", () => {
       windowStart: "09:00",
       windowEnd: "16:00",
     });
-    seedMessage(db, seeded);
+    seedMessage(db, seeded, { scheduledAt: new Date("2026-09-20T00:00:00Z") });
 
     // 13:00 UTC is 09:00 in Toronto during EDT, so this is just inside.
     expect(

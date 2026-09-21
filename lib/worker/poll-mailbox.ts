@@ -83,6 +83,31 @@ export function buildSentLookup(db: Db, mailboxId: number): SentLookup & { sentA
   return { byMessageId, byRecipient, byRecipientDomain, sentAt };
 }
 
+/**
+ * How far back a first poll should look.
+ *
+ * Only used when a folder has no cursor yet. Nothing that arrived before the
+ * first message this mailbox ever sent can be a reply to it, so that date,
+ * less a day of slack for clock skew and timezones, is the floor. With
+ * nothing sent there is nothing to match, so a week is plenty.
+ *
+ * Without this the first poll asks the server for every message in the
+ * mailbox, body and all.
+ */
+function firstPollFloor(db: Db, mailboxId: number, now: Date): Date {
+  const row = db
+    .prepare(
+      "select min(sent_at) as first from messages where mailbox_id = ? and sent_at is not null"
+    )
+    .get(mailboxId) as { first: string | null };
+
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  if (!row.first) return oneWeekAgo;
+
+  const floor = new Date(new Date(row.first).getTime() - 24 * 60 * 60 * 1000);
+  return floor < oneWeekAgo ? floor : oneWeekAgo;
+}
+
 function readCursor(db: Db, mailboxId: number, folder: string) {
   const row = db
     .prepare("select uidvalidity, last_uid from imap_cursors where mailbox_id = ? and folder = ?")
@@ -303,10 +328,11 @@ export async function pollMailbox(
   try {
     const lookup = buildSentLookup(db, mailbox.id);
     const folders = await resolveFolders(client);
+    const seedSince = firstPollFloor(db, mailbox.id, now);
 
     for (const folder of folders) {
       const cursor = readCursor(db, mailbox.id, folder);
-      const fetched = await fetchSince(client, folder, cursor, limitPerFolder);
+      const fetched = await fetchSince(client, folder, cursor, limitPerFolder, seedSince);
 
       if (fetched.uidValidityChanged) {
         result.notes.push(

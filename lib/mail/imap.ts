@@ -98,6 +98,37 @@ export interface FetchResult {
 }
 
 /**
+ * Pick the UID to start a FIRST poll from.
+ *
+ * Starting at 1 is what a fresh cursor naively means, and on a personal
+ * mailbox it is catastrophic: the fetch asks for the full source of every
+ * message, so iCloud streams years of mail down the wire. The first run took
+ * more than ten minutes and had ingested nothing when it was killed. The
+ * `limit` does not save you, because it only stops messages being parsed
+ * after the server has already sent them.
+ *
+ * Nothing older than the first email this tool sent can be a reply to it, so
+ * the first poll seeds from a date instead. SINCE is only day-granular, which
+ * is the reason it is not used for incremental polling, but for picking a
+ * floor once it is exactly right.
+ */
+async function seedStartUid(
+  client: ImapFlow,
+  since: Date
+): Promise<number> {
+  const uids = (await client.search({ since }, { uid: true })) as number[] | false;
+
+  // Nothing that recent. Start at the top: the next poll reads forward from
+  // here, and there is no history worth having.
+  if (!uids || uids.length === 0) {
+    const box = client.mailbox;
+    return typeof box === "boolean" ? 0 : Number(box.uidNext ?? 1) - 1;
+  }
+
+  return Math.min(...uids) - 1;
+}
+
+/**
  * Read everything new in one folder.
  *
  * `uidvalidity` is the server's promise that UIDs are stable. When it changes,
@@ -108,7 +139,9 @@ export async function fetchSince(
   client: ImapFlow,
   folder: string,
   cursor: FolderCursor,
-  limit = 100
+  limit = 100,
+  /** Only consulted on a first poll, to avoid reading the whole mailbox. */
+  seedSince?: Date
 ): Promise<FetchResult> {
   const lock = await client.getMailboxLock(folder);
   const messages: FetchedMessage[] = [];
@@ -122,7 +155,12 @@ export async function fetchSince(
     const uidValidity = Number(box.uidValidity);
     const uidValidityChanged =
       cursor.uidvalidity !== null && cursor.uidvalidity !== uidValidity;
-    const startUid = uidValidityChanged ? 0 : cursor.lastUid;
+
+    // A cursor of 0 means this folder has never been read, either because it
+    // is the first poll or because the server reset its UIDs.
+    const fresh = uidValidityChanged || cursor.lastUid === 0;
+    const startUid =
+      fresh && seedSince ? await seedStartUid(client, seedSince) : uidValidityChanged ? 0 : cursor.lastUid;
 
     let highestUid = startUid;
 
