@@ -1,4 +1,4 @@
-Hello,
+{{#first_name}}Hi {{first_name}},{{/first_name}}{{^first_name}}Hello,{{/first_name}}
 
 I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
 
