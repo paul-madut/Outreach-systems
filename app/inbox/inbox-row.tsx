@@ -37,8 +37,19 @@ export function InboxCard({ row, index }: { row: InboxRow; index: number }) {
       >
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={row.classification} />
-          <span className="text-[13px] font-medium">{row.company ?? row.fromEmail}</span>
-          <span className="font-mono text-[11px] text-muted">{row.fromEmail}</span>
+          {/*
+            The company is only known when the message matched something we
+            sent. Without it the address is the identity, so printing it as
+            the title and again underneath just says it twice.
+          */}
+          {row.company ? (
+            <>
+              <span className="text-[13px] font-medium">{row.company}</span>
+              <span className="font-mono text-[11px] text-muted">{row.fromEmail}</span>
+            </>
+          ) : (
+            <span className="font-mono text-[12px] font-medium">{row.fromEmail}</span>
+          )}
           <span className="nums ml-auto text-[11px] text-faint">
             {formatWhen(row.receivedAt)}
           </span>

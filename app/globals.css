@@ -52,8 +52,20 @@
   --ease-out-quick: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/*
+ * Dark mode.
+ *
+ * Written as plain custom properties on :root, NOT as a second @theme block.
+ * Tailwind v4 resolves @theme at build time and hoists it, so a @theme nested
+ * in a media query loses its condition: the dark values simply overwrote the
+ * light ones and the app was dark whatever the system was set to. These are
+ * ordinary variables, so they cascade at runtime the way the media query
+ * expects, and the utilities Tailwind generated from @theme read them.
+ *
+ * The :not() guard leaves room for an explicit choice to win over the system.
+ */
 @media (prefers-color-scheme: dark) {
-  @theme {
+  :root:not([data-theme="light"]) {
     --color-canvas: #100f12;
     --color-surface: #171619;
     --color-raised: #1f1e22;
@@ -79,6 +91,33 @@
     --color-info: #85abe6;
     --color-info-soft: #16202f;
   }
+}
+
+:root[data-theme="dark"] {
+  --color-canvas: #100f12;
+  --color-surface: #171619;
+  --color-raised: #1f1e22;
+  --color-sunken: #0b0a0c;
+  --color-line: #2a282e;
+  --color-line-strong: #423f48;
+
+  --color-ink: #eceaf0;
+  --color-muted: #9c96a6;
+  --color-faint: #6b6675;
+
+  --color-accent: #58b98d;
+  --color-accent-hover: #6fc79e;
+  --color-accent-soft: #14271f;
+  --color-accent-line: #234337;
+
+  --color-ok: #58b98d;
+  --color-ok-soft: #14271f;
+  --color-warn: #d6a74a;
+  --color-warn-soft: #2b2113;
+  --color-danger: #e08a8a;
+  --color-danger-soft: #2d1919;
+  --color-info: #85abe6;
+  --color-info-soft: #16202f;
 }
 
 html {
