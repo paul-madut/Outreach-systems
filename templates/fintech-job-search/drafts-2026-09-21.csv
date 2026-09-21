@@ -1,0 +1,91 @@
+Company,Subject,Body
+Oscilar,"Growth Engineer, and Agent Hub","Dear Joe,
+
+Agent Hub in June put 30+ agents on one data layer. The Founding Growth Engineer posting reads like the GTM side of that same problem: pipelines and enrichment feeding decisions that have to be right.
+
+That is what I build. B2Lead is a lead generation platform I have running in production, and at ReInvest Wealth I built the eval system that took our AI receipt matching to 97% accuracy.
+
+I am short of the 5 years you ask for, graduating May 2027. Worth 15 minutes anyway?"
+Squads,"Product Engineer, and Altitude's payout rails","Hello,
+
+The Product Engineer posting is written about Altitude, so that is what I read: a USD and EUR business account paying out to 100+ countries with no US entity needed.
+
+The money movement half I have built. NeoBank runs on Stripe Treasury and Issuing, Plaid ACH, and Stripe Identity for KYC. At WebFlux I ran real time integrations against Kalshi and Polymarket order books.
+
+No Solana or Rust yet. The rest is TypeScript and Postgres, which is your stack.
+
+Is the role open to a May 2027 graduate?"
+Shakepay,"Direct Interac participation, and a 2027 grad","Dear Jean,
+
+Becoming a direct Interac e-Transfer participant in July is the part I keep thinking about. Owning the rail instead of renting it changes what you can build on top of it.
+
+I am Ottawa based, Carleton CS, graduating May 2027. Node, TypeScript and Postgres daily. At WebFlux I built a prop firm dashboard solo with real time Kalshi and Polymarket order book integrations, including drawdown and risk metrics, which is not far from what BLOC needs.
+
+Senior is a stretch for me today. Would you consider a 2027 new grad?"
+Circle,"Arc, and the 2027 new grad cycle","Hello,
+
+The 2026 backend new grad posting is gone from your careers site, so this is a note for the next cycle rather than an application.
+
+Arc going live last week with USDC as the gas token is why I am writing. Deterministic sub second finality is the kind of constraint I like working under. At Fincnx I built real time portfolio tracking for 500+ concurrent users at sub 100ms on WebSocket and Redis.
+
+Carleton, BCS May 2027, Canadian. Could you keep me on the list for the 2027 cohort?"
+Helius,"Solutions Engineer, and Parsed Streams","Dear Mert,
+
+Parsed Streams pushing decoded transactions over WebSocket the moment they confirm is the part I would want to work on. I have built the consumer side of that shape: at Fincnx, real time portfolio tracking for 500+ concurrent users at sub 100ms over WebSocket and Redis, and at WebFlux, live integrations against Kalshi and Polymarket order books.
+
+The Solutions Engineer posting asks for 1 to 2 years, which is actually where I am. Carleton CS, graduating May 2027, another Ontario kid.
+
+Can I send you a resume?"
+Resend,"The backend role, from someone who parsed the other end","Dear Zeno,
+
+I built the email forwarding ingestion at ReInvest Wealth, so I have been on the receiving end of a production email pipeline: parsing what arrives, matching it, and owning it when it goes wrong. It gave me a lot of respect for what Resend hides.
+
+I saw the backend engineer role go up last week. I work in TypeScript and Next.js daily, and I built the eval system that took our receipt matching to 97% accuracy.
+
+Carleton CS, May 2027. Too early for you?"
+KOHO Financial,"The Analytics Engineer role, and the dbt gap","Hello,
+
+Seeing ""KOHO Bank (letters patent pending)"" inside your own job postings is a good detail. Becoming a Schedule I bank changes what the data underneath has to withstand.
+
+I will be straight about the Analytics Engineer posting: I have not used dbt. What I do have is the adjacent half. At WebFlux I built the evaluation engine computing trader performance, drawdown and risk metrics, and at ReInvest Wealth I built the eval system that took AI receipt matching to 97%.
+
+Carleton CS, May 2027, Canadian. Is there a junior version of this role?"
+d1g1t,"Integrations role, or the Solutions Engineer one","Hello,
+
+Shipping an MCP server that connects the platform to Claude is a more interesting detail than the awards, and it is what made me look closer.
+
+The Integrations posting asks for 5+ years and Airflow, neither of which I have. But at Fincnx I was sole developer on a finance platform serving 1,500+ users and built algorithmic trading prototypes for Bank of Montreal, National Bank and Investment Planning Council Canada, which is the buyer you sell to.
+
+Carleton CS, May 2027. Is the Solutions Engineer role a better fit for me?"
+Zum Rails,"Technical Support Analyst, and the Fiserv payfac launch","Hello,
+
+Becoming a payments facilitator through Fiserv in February finished off the card side of the stack. One API across Interac, EFT, ACH, RTP and cards is a genuinely hard thing to have built.
+
+I have built a small version of it. NeoBank runs Plaid ACH, Stripe Treasury and Issuing, and Stripe Identity for KYC. At Fincnx I was sole developer on a finance platform serving 1,500+ users, which meant I owned the failed transactions and the API errors.
+
+The 1 to 3 year band fits me. Can I send a resume?"
+Massive (formerly Polygon.io),"Developer Support Engineer, from one of your users","Hello,
+
+The MCP server you shipped last week is a neat way to hand market data to an assistant with no API key to lose.
+
+I have spent two years on the other side of this product category. At Tradeful I built a backtesting engine simulating strategies over 5+ years of historical market data at sub 500ms. At Fincnx I ran real time portfolio tracking for 500+ concurrent users at sub 100ms over WebSocket and Redis. I have hit the failure modes your support queue sees.
+
+I am Canadian. Is the role open to me?"
+Loop,"The QuickBooks API work, and a developer application","Hello,
+
+Shipping direct API connectivity for QuickBooks, Xero and Wave in February, instead of scraping, is why I am writing. I know from the other side why that mattered.
+
+I work at ReInvest Wealth, Canadian bookkeeping software, where I built the AI receipt ingestion and rebuilt the transactions interface. Bank feeds breaking reconciliation is a problem I have handled from the accounting end.
+
+I am in Ottawa and would move to Toronto for the right role. Carleton CS, May 2027.
+
+Should I send the resume and short doc your process asks for?"
+Hummingbird,"Cortex team, evaluations, and a 2027 grad","Hello,
+
+The Senior Software Engineer posting for the Cortex team asks for grounding quality, citations, and evaluations that make AI output auditable. That is the specific thing I have already done.
+
+At ReInvest Wealth I built the eval system that took an OpenAI vision receipt pipeline to 97% matching accuracy. CRO AI Audit is a retrieval platform I built on FastAPI, ChromaDB and GPT-4.
+
+I am a new grad in May 2027, so I am under your senior bar and I know it.
+
+Is there a level where that experience is still useful?"
