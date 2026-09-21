@@ -23,7 +23,7 @@ import {
   setCampaignStatus,
   upsertStep,
 } from "@/lib/campaign";
-import { dryRender, enrollContacts, previewEnrollment } from "@/lib/enroll";
+import { INELIGIBLE_LABEL, dryRender, enrollContacts, previewEnrollment } from "@/lib/enroll";
 import { selectContacts } from "@/lib/enroll/select";
 import { listCampaigns } from "@/lib/queries";
 
@@ -190,7 +190,7 @@ function preview(args: string[]): void {
 
   const reasons = new Map<string, number>();
   for (const row of ineligible) {
-    const key = row.reason.split(":")[0];
+    const key = INELIGIBLE_LABEL[row.kind];
     reasons.set(key, (reasons.get(key) ?? 0) + 1);
   }
   for (const [reason, count] of [...reasons].sort((a, b) => b[1] - a[1])) {

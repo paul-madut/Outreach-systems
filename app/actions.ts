@@ -2,7 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
-import { approveDrafts, dryRender, enrollContacts, previewEnrollment, updateDraft } from "@/lib/enroll";
+import {
+  INELIGIBLE_LABEL,
+  approveDrafts,
+  dryRender,
+  enrollContacts,
+  previewEnrollment,
+  updateDraft,
+  type IneligibleKind,
+} from "@/lib/enroll";
 import { selectContacts } from "@/lib/enroll/select";
 import { stopEnrollment } from "@/lib/worker/claim";
 import { createCampaign, setCampaignStatus, setMailboxStatus, upsertStep } from "@/lib/campaign";
@@ -238,22 +246,37 @@ export async function saveStepAction(input: {
 /**
  * Remove a step.
  *
- * Refused once it has sent anything, because the sent messages reference it
- * and a follow-up chain with a hole in it is worse than one that is too long.
+ * Refused while any message still points at it. A sent one is history and a
+ * chain with a hole in it is worse than one that is too long; a draft or a
+ * queued message would be left referring to a step that no longer exists,
+ * which is how a message goes out that nobody can account for.
  */
 export async function deleteStepAction(campaignId: number, stepNumber: number) {
   const db = getDb();
 
-  const sent = db
+  const held = db
     .prepare(
-      `select count(*) as n from messages msg join enrollments e on e.id = msg.enrollment_id
-        where e.campaign_id = ? and msg.step_number = ? and msg.status = 'sent'`
+      `select
+         sum(case when msg.status = 'sent' then 1 else 0 end) as sent,
+         sum(case when msg.status in ('draft','scheduled','sending','uncertain','failed')
+                  then 1 else 0 end) as pending
+       from messages msg join enrollments e on e.id = msg.enrollment_id
+      where e.campaign_id = ? and msg.step_number = ?`
     )
-    .get(campaignId, stepNumber) as { n: number };
+    .get(campaignId, stepNumber) as { sent: number | null; pending: number | null };
 
-  if (sent.n > 0) {
+  const sent = held.sent ?? 0;
+  const pending = held.pending ?? 0;
+
+  if (sent > 0) {
     throw new Error(
-      `Step ${stepNumber} has already been sent ${sent.n} time${sent.n === 1 ? "" : "s"}, so it cannot be removed.`
+      `Step ${stepNumber} has already been sent ${sent} time${sent === 1 ? "" : "s"}, so it cannot be removed.`
+    );
+  }
+
+  if (pending > 0) {
+    throw new Error(
+      `${pending} message${pending === 1 ? "" : "s"} still point at step ${stepNumber}. Cancel them in the queue first.`
     );
   }
 
@@ -332,7 +355,7 @@ export async function previewEnrollAction(
       considered: 0,
       matched: [] as { company: string; email: string; excerpt: string }[],
       eligible: 0,
-      ineligible: [] as { company: string; reason: string }[],
+      ineligible: [] as { company: string; kind: IneligibleKind; label: string }[],
       blocked: [] as { company: string; reason: string }[],
       sample: null as { company: string; subject: string; body: string } | null,
     };
@@ -354,7 +377,8 @@ export async function previewEnrollAction(
     eligible: render.rendered.length,
     ineligible: preview.ineligible.map((row) => ({
       company: row.company,
-      reason: row.reason,
+      kind: row.kind,
+      label: INELIGIBLE_LABEL[row.kind],
     })),
     blocked: [
       ...render.blocked.map((row) => ({

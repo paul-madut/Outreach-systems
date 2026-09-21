@@ -142,7 +142,7 @@ export function MergeFields({
         className={cn(inputClass, "mb-2 py-1 text-[12px]")}
       />
 
-      <ul className="max-h-[420px] space-y-px overflow-y-auto">
+      <ul className="max-h-[420px] space-y-px overflow-y-auto overflow-x-hidden">
         {shown.map((field) => {
           const rate = field.total > 0 ? field.filled / field.total : 0;
           const thin = rate < 0.9;
@@ -154,13 +154,13 @@ export function MergeFields({
                 onClick={() => copy(field.key)}
                 title={field.example ? `e.g. ${field.example}` : field.source}
                 className={cn(
-                  "group flex w-full items-baseline gap-2 rounded-sm px-1.5 py-1 text-left",
+                  "group flex w-full min-w-0 items-baseline gap-2 rounded-sm px-1.5 py-1 text-left",
                   "transition-colors duration-150 hover:bg-raised"
                 )}
               >
                 <span
                   className={cn(
-                    "font-mono text-[11px]",
+                    "truncate font-mono text-[11px]",
                     used.has(field.key) ? "text-accent" : "text-ink"
                   )}
                 >
@@ -200,25 +200,44 @@ export function StepFields({
   onSubject,
   onBody,
   maxWords,
+  threadedOnto,
 }: {
   subject: string;
   body: string;
   onSubject: (value: string) => void;
   onBody: (value: string) => void;
   maxWords: number;
+  /**
+   * Step 1's subject, when this step threads onto it. A threaded follow-up
+   * has no subject of its own: Gmail threads on the subject as well as the
+   * headers, so rewording it would start a new conversation. Showing an
+   * editable box that the send path then ignores would be a lie.
+   */
+  threadedOnto?: string;
 }) {
   const words = body.trim().split(/\s+/).filter(Boolean).length;
 
   return (
     <div className="space-y-3">
-      <Field label="Subject" hint="Follow-ups reuse step 1's subject with Re: in front.">
-        <input
-          value={subject}
-          onChange={(event) => onSubject(event.target.value)}
-          placeholder="Quick question about {{company_short}}"
-          className={cn(inputClass, "font-mono text-[12px]")}
-        />
-      </Field>
+      {threadedOnto ? (
+        <Field
+          label="Subject"
+          hint="Set for you. Changing it would break the thread, so it is not editable."
+        >
+          <div className={cn(inputClass, "font-mono text-[12px] text-muted")}>
+            Re: {threadedOnto}
+          </div>
+        </Field>
+      ) : (
+        <Field label="Subject">
+          <input
+            value={subject}
+            onChange={(event) => onSubject(event.target.value)}
+            placeholder="Quick question about {{company_short}}"
+            className={cn(inputClass, "font-mono text-[12px]")}
+          />
+        </Field>
+      )}
 
       <Field label="Body">
         <textarea

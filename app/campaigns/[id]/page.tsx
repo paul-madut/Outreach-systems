@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { getDb } from "@/lib/db";
 import { getCampaignDetail, listCampaigns, listMergeFields } from "@/lib/queries";
 import { PageHeading } from "../../ui";
@@ -23,13 +22,8 @@ export default async function CampaignPage({ params }: PageProps<"/campaigns/[id
     <>
       <PageHeading
         title={campaign.name}
-        subtitle={
-          campaign.description ?? (
-            <Link href="/campaigns" className="hover:text-ink">
-              All campaigns
-            </Link>
-          )
-        }
+        subtitle={campaign.description ?? undefined}
+        back={{ href: "/campaigns", label: "All campaigns" }}
       />
       <CampaignTabs
         campaign={campaign}

@@ -28,6 +28,7 @@ export function StepsPanel({
 }) {
   const nextNumber = (campaign.steps.at(-1)?.stepNumber ?? 0) + 1;
   const [adding, setAdding] = useState(false);
+  const firstSubject = campaign.steps[0]?.subject ?? "";
 
   const used = useMemo(
     () =>
@@ -57,18 +58,27 @@ export function StepsPanel({
         )}
 
         {campaign.steps.map((step) => (
-          <StepCard key={step.stepNumber} campaign={campaign} step={step} fields={fields} />
+          <StepCard
+            key={step.stepNumber}
+            campaign={campaign}
+            step={step}
+            fields={fields}
+            firstSubject={firstSubject}
+          />
         ))}
 
         {adding && (
           <StepCard
             campaign={campaign}
             fields={fields}
+            firstSubject={firstSubject}
             step={{
               id: 0,
               stepNumber: nextNumber,
+              // A threaded follow-up never uses this, but the column is not
+              // nullable, so it carries a marker rather than a fake subject.
+              subject: nextNumber === 1 ? "" : "threaded",
               delayDays: nextNumber === 1 ? 0 : 3,
-              subject: nextNumber === 1 ? "" : campaign.steps[0]?.subject ?? "",
               body: "",
               sameThread: nextNumber > 1,
               fields: [],
@@ -117,15 +127,21 @@ function StepCard({
   campaign,
   step,
   fields,
+  firstSubject,
   startOpen,
   onCancel,
 }: {
   campaign: CampaignDetail;
   step: StepDetail;
   fields: MergeField[];
+  firstSubject: string;
   startOpen?: boolean;
   onCancel?: () => void;
 }) {
+  // A threaded follow-up is sent as "Re: <step 1's subject>", whatever is in
+  // its own subject column, so that is what the card has to show.
+  const threaded = step.stepNumber > 1 && step.sameThread;
+  const shownSubject = threaded ? `Re: ${firstSubject}` : step.subject;
   const router = useRouter();
   const [open, setOpen] = useState(Boolean(startOpen));
   const [subject, setSubject] = useState(step.subject);
@@ -143,8 +159,12 @@ function StepCard({
   );
 
   function save() {
-    if (!subject.trim() || !body.trim()) {
-      toast.error("A step needs a subject and a body");
+    if (!body.trim()) {
+      toast.error("A step needs a body");
+      return;
+    }
+    if (!threaded && !subject.trim()) {
+      toast.error("Step 1 needs a subject");
       return;
     }
 
@@ -219,7 +239,7 @@ function StepCard({
           >
             {open ? (dirty ? "Discard" : "Close") : "Edit"}
           </button>
-          {!open && step.sent === 0 && step.id !== 0 && (
+          {!open && step.id !== 0 && step.sent === 0 && step.drafts === 0 && step.scheduled === 0 && (
             <button type="button" onClick={remove} className={buttonClass("ghost")}>
               Remove
             </button>
@@ -229,7 +249,7 @@ function StepCard({
 
       {!open && (
         <div className="mt-2">
-          <div className="font-mono text-[12px]">{step.subject || "no subject yet"}</div>
+          <div className="font-mono text-[12px]">{shownSubject || "no subject yet"}</div>
           <p className="mt-1.5 line-clamp-3 whitespace-pre-wrap font-mono text-[11px] leading-[1.6] text-muted">
             {step.body}
           </p>
@@ -260,6 +280,7 @@ function StepCard({
             onSubject={setSubject}
             onBody={setBody}
             maxWords={campaign.maxWords}
+            threadedOnto={threaded ? firstSubject : undefined}
           />
 
           {unknown.length > 0 && (

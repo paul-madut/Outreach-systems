@@ -310,9 +310,15 @@ function MessageCard({
   const isDraft = row.status === "draft";
 
   return (
+    /*
+      Clicking moves the cursor; hovering does not. Hover looked friendlier
+      until j scrolled a card under a pointer that had not moved, Chrome
+      fired mouseenter, and the cursor jumped back to wherever the mouse
+      happened to be resting. Keyboard and mouse were fighting each other.
+    */
     <div
       ref={registerRef}
-      onMouseEnter={onFocus}
+      onClick={onFocus}
       className="rise"
       style={{ animationDelay: `${Math.min(index, 8) * 25}ms` }}
     >

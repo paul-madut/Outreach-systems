@@ -237,14 +237,18 @@ export function EnrollPanel({
   );
 }
 
-/** Reasons, grouped, because 108 rows of "suppressed" is not worth reading. */
-function Skipped({ rows }: { rows: { company: string; reason: string }[] }) {
+/**
+ * Reasons, grouped, because a hundred rows of "suppressed" is not worth
+ * reading. The grouping is on the tag the enrollment code sets rather than on
+ * the wording, since every suppression reason carries a domain and splitting
+ * the prose on its punctuation makes one group into a hundred groups of one.
+ */
+function Skipped({ rows }: { rows: { company: string; label: string }[] }) {
   const [open, setOpen] = useState(false);
 
   const groups = new Map<string, string[]>();
   for (const row of rows) {
-    const key = row.reason.split(/[:.]/)[0].trim();
-    groups.set(key, [...(groups.get(key) ?? []), row.company]);
+    groups.set(row.label, [...(groups.get(row.label) ?? []), row.company]);
   }
 
   return (

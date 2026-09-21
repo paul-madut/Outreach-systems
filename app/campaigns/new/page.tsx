@@ -54,7 +54,7 @@ export default function NewCampaignPage() {
   if (mailboxes.length === 0) {
     return (
       <>
-        <PageHeading title="New campaign" />
+        <PageHeading title="New campaign" back={{ href: "/campaigns", label: "All campaigns" }} />
         <Empty
           title="There is no mailbox to send from."
           hint="Store an app-specific password in the Keychain, then register the mailbox. A campaign has to belong to one."
@@ -70,6 +70,7 @@ export default function NewCampaignPage() {
       <PageHeading
         title="New campaign"
         subtitle="Nothing sends from this until you activate it and approve the drafts, so it is safe to get wrong."
+        back={{ href: "/campaigns", label: "All campaigns" }}
       />
       <NewCampaignForm mailboxes={mailboxes} fields={fields} starters={starters()} />
     </>

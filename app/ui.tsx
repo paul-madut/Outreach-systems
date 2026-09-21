@@ -220,14 +220,28 @@ export function PageHeading({
   title,
   subtitle,
   right,
+  back,
 }: {
   title: string;
   subtitle?: React.ReactNode;
   right?: React.ReactNode;
+  /** A way back up, shown above the title where a breadcrumb belongs. */
+  back?: { href: string; label: string };
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
+        {back && (
+          <Link
+            href={back.href}
+            className="group mb-1 inline-flex items-center gap-1 text-xs text-muted hover:text-ink"
+          >
+            <span className="inline-block transition-transform duration-150 ease-[var(--ease-out-quick)] group-hover:-translate-x-0.5">
+              &larr;
+            </span>
+            {back.label}
+          </Link>
+        )}
         <h1 className="display text-2xl">{title}</h1>
         {subtitle && <p className="mt-1 max-w-2xl text-sm text-muted">{subtitle}</p>}
       </div>

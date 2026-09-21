@@ -43,12 +43,30 @@ export interface EligibleContact {
   grade: string | null;
 }
 
+/**
+ * Why a contact cannot be enrolled.
+ *
+ * `kind` exists so callers can group these. Grouping on the prose does not
+ * work: every suppression reason carries a domain, and splitting on the
+ * punctuation turns one "suppressed" group into a hundred groups of one.
+ */
+export type IneligibleKind = "already_enrolled" | "on_hold" | "no_email" | "suppressed";
+
 export interface Ineligible {
   contactId: number | null;
   company: string;
   email: string | null;
+  kind: IneligibleKind;
   reason: string;
 }
+
+/** A plain-English heading for a group of skipped contacts. */
+export const INELIGIBLE_LABEL: Record<IneligibleKind, string> = {
+  already_enrolled: "Already in this campaign",
+  on_hold: "On hold, flagged during research",
+  no_email: "No email address",
+  suppressed: "On the do-not-contact list",
+};
 
 export interface EnrollPreview {
   eligible: EligibleContact[];
@@ -102,16 +120,21 @@ export function previewEnrollment(
     const base = { contactId: row.contact_id, company: row.company, email: row.email };
 
     if (row.already_enrolled > 0) {
-      ineligible.push({ ...base, reason: "Already enrolled in this campaign." });
+      ineligible.push({
+        ...base,
+        kind: "already_enrolled",
+        reason: "Already enrolled in this campaign.",
+      });
       continue;
     }
     if (row.hold_reason) {
-      ineligible.push({ ...base, reason: `On hold: ${row.hold_reason}` });
+      ineligible.push({ ...base, kind: "on_hold", reason: `On hold: ${row.hold_reason}` });
       continue;
     }
     if (row.channel !== "email" || !row.email) {
       ineligible.push({
         ...base,
+        kind: "no_email",
         reason: `No email address; reachable by ${row.channel.replace("_", " ")}.`,
       });
       continue;
@@ -121,6 +144,7 @@ export function previewEnrollment(
     if (suppression) {
       ineligible.push({
         ...base,
+        kind: "suppressed",
         reason: `Suppressed by ${suppression.kind} "${suppression.value}".`,
       });
       continue;
