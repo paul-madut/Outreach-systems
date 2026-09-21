@@ -177,9 +177,19 @@ export function listProspects(
               (select count(*) from contacts c where c.prospect_id = p.id) as contacts,
               (select count(*) from contacts c
                 where c.prospect_id = p.id and c.channel = 'email') as emailable,
+              -- Both kinds. The seeded exclude list is domain-level, so
+              -- counting only email suppressions showed every already-contacted
+              -- prospect as clear and gave no clue why it would not enrol.
               (select count(*) from contacts c
-                join suppressions s on s.kind = 'email' and s.value = lower(c.email)
-                where c.prospect_id = p.id) as suppressed,
+                where c.prospect_id = p.id
+                  and c.email is not null
+                  and (
+                    exists (select 1 from suppressions s
+                             where s.kind = 'email' and s.value = lower(c.email))
+                    or exists (select 1 from suppressions s
+                                where s.kind = 'domain'
+                                  and s.value = substr(lower(c.email), instr(c.email, '@') + 1))
+                  )) as suppressed,
               (select max(m.sent_at) from messages m
                  join enrollments e on e.id = m.enrollment_id
                  join contacts c on c.id = e.contact_id

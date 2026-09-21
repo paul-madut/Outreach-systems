@@ -10,6 +10,7 @@ import {
   retryFailed,
   saveDraft,
 } from "../actions";
+import { cn } from "@/lib/utils";
 import { Badge, Card, StatusBadge, formatWhen } from "../ui";
 
 /**
@@ -105,7 +106,19 @@ export function QueueList({ rows }: { rows: QueueRow[] }) {
 
                 <div className="mt-2 text-sm font-medium">{row.subject}</div>
 
-                <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-sm text-muted">
+                {/*
+                  A draft is shown in full. The job on this screen is to read
+                  the email and decide, and clamping it to two lines means
+                  opening the editor for every single one just to see what it
+                  says. Anything already sent or scheduled is not being read,
+                  so those stay short.
+                */}
+                <p
+                  className={cn(
+                    "mt-1 whitespace-pre-wrap text-sm leading-relaxed text-muted",
+                    row.status !== "draft" && "line-clamp-2"
+                  )}
+                >
                   {row.body}
                 </p>
 
