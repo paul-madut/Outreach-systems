@@ -722,3 +722,57 @@ export function listMergeFields(db: Db): MergeField[] {
     .map(([key, entry]) => ({ key, ...entry, total }))
     .sort((a, b) => b.filled - a.filled || a.key.localeCompare(b.key));
 }
+
+/**
+ * How many messages sit in each status, for the filter pills.
+ *
+ * The empty key is the default view: everything still waiting on something.
+ * Showing the count on the pill answers "is there anything failed" without
+ * clicking through to an empty list to find out.
+ */
+export function countQueueByStatus(
+  db: Db,
+  campaignId?: number
+): Record<string, number> {
+  const rows = db
+    .prepare(
+      `select m.status, count(*) as n
+         from messages m
+         join enrollments e on e.id = m.enrollment_id
+        where (? is null or e.campaign_id = ?)
+        group by m.status`
+    )
+    .all(campaignId ?? null, campaignId ?? null) as { status: string; n: number }[];
+
+  const counts: Record<string, number> = {};
+  for (const row of rows) counts[row.status] = row.n;
+
+  counts[""] = ["draft", "scheduled", "sending", "uncertain", "failed"].reduce(
+    (total, status) => total + (counts[status] ?? 0),
+    0
+  );
+
+  return counts;
+}
+
+/** The same, for the inbox tabs. */
+export function countInboxByKind(db: Db): Record<string, number> {
+  const rows = db
+    .prepare("select classification, count(*) as n from inbound_messages group by classification")
+    .all() as { classification: string; n: number }[];
+
+  const counts: Record<string, number> = {};
+  let total = 0;
+  for (const row of rows) {
+    counts[row.classification] = row.n;
+    total += row.n;
+  }
+  counts[""] = total;
+
+  return counts;
+}
+
+/** How many prospects exist, for "12 of 152 match". */
+export function countProspects(db: Db): number {
+  return (db.prepare("select count(*) as n from prospects").get() as { n: number }).n;
+}

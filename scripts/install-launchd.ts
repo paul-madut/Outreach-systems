@@ -107,7 +107,10 @@ function install(): void {
   console.log(`  runs        every ${INTERVAL_SECONDS / 60} minutes while the Mac is awake`);
   console.log(`  working dir ${REPO}`);
   console.log(`  logs        ${LOG_DIR}/worker.log`);
-  console.log(`\nNothing will actually send until OUTREACH_LIVE=1 is set in ${REPO}/.env.local.`);
+  console.log(
+    `\nNothing is delivered until OUTREACH_LIVE=1 is in ${REPO}/.env.local.` +
+      `\nThe worker reads that file itself, so no relaunch of anything else is needed.`
+  );
 }
 
 function uninstall(): void {

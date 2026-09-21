@@ -395,3 +395,51 @@ export function timeAgo(iso: string | null): string {
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
 }
+
+/**
+ * A row of filter pills.
+ *
+ * Shared by the queue, the inbox and the prospects table so a filter looks
+ * and behaves the same wherever it appears. Each one carries its own count,
+ * because "Failed" reading zero is the answer to the question, and clicking
+ * through to an empty list to find that out is the slow way to learn it.
+ */
+export function FilterPills({
+  options,
+  active,
+  href,
+}: {
+  options: { value: string; label: string; count?: number }[];
+  active: string;
+  href: (value: string) => string;
+}) {
+  return (
+    <div className="mb-4 flex flex-wrap gap-1">
+      {options.map((option) => {
+        const on = active === option.value;
+
+        return (
+          <Link
+            key={option.label}
+            href={href(option.value)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs",
+              "transition-[background-color,border-color,transform] duration-150",
+              "ease-[var(--ease-out-quick)] active:scale-[0.97]",
+              on
+                ? "border-ink bg-ink text-canvas"
+                : "border-line text-muted hover:border-line-strong hover:bg-raised hover:text-ink"
+            )}
+          >
+            {option.label}
+            {option.count !== undefined && (
+              <span className={cn("nums text-[10px]", on ? "opacity-70" : "text-faint")}>
+                {option.count}
+              </span>
+            )}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}

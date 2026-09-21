@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { getDb } from "@/lib/db";
-import { listCampaigns, listQueue } from "@/lib/queries";
-import { Card, Empty, PageHeading, StatusBadge, formatWhen } from "../ui";
+import { countQueueByStatus, listCampaigns, listQueue } from "@/lib/queries";
+import { Card, Empty, FilterPills, LinkButton, PageHeading, StatusBadge, formatWhen } from "../ui";
 import { QueueList } from "./queue-list";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +8,7 @@ export const dynamic = "force-dynamic";
 const FILTERS = [
   { value: "", label: "Everything waiting" },
   { value: "draft", label: "Drafts" },
-  { value: "scheduled", label: "Scheduled" },
+  { value: "scheduled", label: "Queued" },
   { value: "uncertain", label: "Unknown outcome" },
   { value: "failed", label: "Failed" },
   { value: "sent", label: "Sent" },
@@ -26,6 +25,7 @@ export default async function QueuePage({
   const rows = listQueue(db, { campaignId, status, limit: 300 });
   const campaigns = listCampaigns(db);
   const campaign = campaigns.find((c) => c.id === campaignId);
+  const counts = countQueueByStatus(db, campaignId);
 
   const query = (next: Record<string, string | undefined>) => {
     const search = new URLSearchParams();
@@ -47,34 +47,22 @@ export default async function QueuePage({
             ? `${campaign.name}, sending from ${campaign.mailbox}`
             : "Drafts waiting for review, and what is scheduled to go out."
         }
+        back={campaign ? { href: `/campaigns/${campaign.id}`, label: campaign.name } : undefined}
+        right={
+          campaignId ? (
+            <LinkButton href={query({ campaign: undefined })}>Show every campaign</LinkButton>
+          ) : undefined
+        }
       />
 
-      <div className="mb-4 flex flex-wrap gap-1.5 text-xs">
-        {FILTERS.map((filter) => {
-          const active = (status ?? "") === filter.value;
-          return (
-            <Link
-              key={filter.label}
-              href={query({ status: filter.value || undefined })}
-              className={
-                active
-                  ? "rounded border border-ink bg-ink px-2 py-1 text-canvas"
-                  : "rounded border border-line px-2 py-1 text-muted hover:bg-raised"
-              }
-            >
-              {filter.label}
-            </Link>
-          );
-        })}
-        {campaignId && (
-          <Link
-            href={query({ campaign: undefined })}
-            className="rounded border border-line px-2 py-1 text-muted hover:bg-raised"
-          >
-            All campaigns
-          </Link>
-        )}
-      </div>
+      <FilterPills
+        active={status ?? ""}
+        href={(value) => query({ status: value || undefined })}
+        options={FILTERS.map((filter) => ({
+          ...filter,
+          count: counts[filter.value] ?? 0,
+        }))}
+      />
 
       {rows.length === 0 ? (
         <Empty

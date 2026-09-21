@@ -16,11 +16,14 @@
  * nothing to keep in memory between passes.
  */
 import { resolve } from "node:path";
+import { loadLocalEnv } from "@/lib/env";
 import { getDb, databasePath } from "@/lib/db";
 import { withLock, LockHeldError } from "@/lib/worker/lock";
 import { sweepOrphans } from "@/lib/worker/claim";
 import { isLive, runSendTick } from "@/lib/worker/send-tick";
 import { pollAllMailboxes } from "@/lib/worker/poll-mailbox";
+
+loadLocalEnv();
 
 const LOCK_PATH = resolve(process.cwd(), ".worker.lock");
 
