@@ -1,0 +1,441 @@
+Company,Contact,Email,Role (from sheet),Goes out (Toronto),Type,Subject,Body
+Circle,Brian Christman,talent-acquisition@circle.com,"New Grad 2026: Software Engineer, Backend","Sep 22, 2026, 10:57 a.m.",researched,"Arc, and the 2027 new grad cycle","Hello,
+
+The 2026 backend new grad posting is gone from your careers site, so this is a note for the next cycle rather than an application.
+
+Arc going live last week with USDC as the gas token is why I am writing. Deterministic sub second finality is the kind of constraint I like working under. At Fincnx I built real time portfolio tracking for 500+ concurrent users at sub 100ms on WebSocket and Redis.
+
+Carleton, BCS May 2027, Canadian. Could you keep me on the list for the 2027 cohort?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Helius,Mert Mumtaz,mert@helius.xyz,Solutions Engineer,"Sep 22, 2026, 11:36 a.m.",researched,"Solutions Engineer, and Parsed Streams","Dear Mert,
+
+Parsed Streams pushing decoded transactions over WebSocket the moment they confirm is the part I would want to work on. I have built the consumer side of that shape: at Fincnx, real time portfolio tracking for 500+ concurrent users at sub 100ms over WebSocket and Redis, and at WebFlux, live integrations against Kalshi and Polymarket order books.
+
+The Solutions Engineer posting asks for 1 to 2 years, which is actually where I am. Carleton CS, graduating May 2027, another Ontario kid.
+
+Can I send you a resume?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Hummingbird,,jobs@hummingbird.co,,"Sep 22, 2026, 12:15 p.m.",researched,"Cortex team, evaluations, and a 2027 grad","Hello,
+
+The Senior Software Engineer posting for the Cortex team asks for grounding quality, citations, and evaluations that make AI output auditable. That is the specific thing I have already done.
+
+At ReInvest Wealth I built the eval system that took an OpenAI vision receipt pipeline to 97% matching accuracy. CRO AI Audit is a retrieval platform I built on FastAPI, ChromaDB and GPT-4.
+
+I am a new grad in May 2027, so I am under your senior bar and I know it.
+
+Is there a level where that experience is still useful?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+KOHO Financial,,talent@koho.ca,Analytics Engineer (Canada) - no software…,"Sep 22, 2026, 12:41 p.m.",researched,"The Analytics Engineer role, and the dbt gap","Hello,
+
+Seeing ""KOHO Bank (letters patent pending)"" inside your own job postings is a good detail. Becoming a Schedule I bank changes what the data underneath has to withstand.
+
+I will be straight about the Analytics Engineer posting: I have not used dbt. What I do have is the adjacent half. At WebFlux I built the evaluation engine computing trader performance, drawdown and risk metrics, and at ReInvest Wealth I built the eval system that took AI receipt matching to 97%.
+
+Carleton CS, May 2027, Canadian. Is there a junior version of this role?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Loop,Yan Matagne,careers@bankonloop.com,,"Sep 22, 2026, 1:07 p.m.",researched,"The QuickBooks API work, and a developer application","Hello,
+
+Shipping direct API connectivity for QuickBooks, Xero and Wave in February, instead of scraping, is why I am writing. I know from the other side why that mattered.
+
+I work at ReInvest Wealth, Canadian bookkeeping software, where I built the AI receipt ingestion and rebuilt the transactions interface. Bank feeds breaking reconciliation is a problem I have handled from the accounting end.
+
+I am in Ottawa and would move to Toronto for the right role. Carleton CS, May 2027.
+
+Should I send the resume and short doc your process asks for?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Massive (formerly Polygon.io),,careers@massive.com,Developer Support Engineer,"Sep 23, 2026, 9:13 a.m.",researched,"Developer Support Engineer, from one of your users","Hello,
+
+The MCP server you shipped last week is a neat way to hand market data to an assistant with no API key to lose.
+
+I have spent two years on the other side of this product category. At Tradeful I built a backtesting engine simulating strategies over 5+ years of historical market data at sub 500ms. At Fincnx I ran real time portfolio tracking for 500+ concurrent users at sub 100ms over WebSocket and Redis. I have hit the failure modes your support queue sees.
+
+I am Canadian. Is the role open to me?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Oscilar,Joe (Oscilar growth/marketing leadership),joe@oscilar.com,Growth Engineer (Remote),"Sep 23, 2026, 9:52 a.m.",researched,"Growth Engineer, and Agent Hub","Dear Joe,
+
+Agent Hub in June put 30+ agents on one data layer. The Founding Growth Engineer posting reads like the GTM side of that same problem: pipelines and enrichment feeding decisions that have to be right.
+
+That is what I build. B2Lead is a lead generation platform I have running in production, and at ReInvest Wealth I built the eval system that took our AI receipt matching to 97% accuracy.
+
+I am short of the 5 years you ask for, graduating May 2027. Worth 15 minutes anyway?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Resend,Zeno Rocha,zeno@resend.com,Technical Account Executive,"Sep 23, 2026, 10:05 a.m.",researched,"The backend role, from someone who parsed the other end","Dear Zeno,
+
+I built the email forwarding ingestion at ReInvest Wealth, so I have been on the receiving end of a production email pipeline: parsing what arrives, matching it, and owning it when it goes wrong. It gave me a lot of respect for what Resend hides.
+
+I saw the backend engineer role go up last week. I work in TypeScript and Next.js daily, and I built the eval system that took our receipt matching to 97% accuracy.
+
+Carleton CS, May 2027. Too early for you?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Shakepay,Jean Amiouny,jean@shakepay.com,Senior Software Engineer (future opportun…,"Sep 23, 2026, 10:18 a.m.",researched,"Direct Interac participation, and a 2027 grad","Dear Jean,
+
+Becoming a direct Interac e-Transfer participant in July is the part I keep thinking about. Owning the rail instead of renting it changes what you can build on top of it.
+
+I am Ottawa based, Carleton CS, graduating May 2027. Node, TypeScript and Postgres daily. At WebFlux I built a prop firm dashboard solo with real time Kalshi and Polymarket order book integrations, including drawdown and risk metrics, which is not far from what BLOC needs.
+
+Senior is a stretch for me today. Would you consider a 2027 new grad?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Squads,,talent@sqds.io,Product Engineer,"Sep 23, 2026, 10:44 a.m.",researched,"Product Engineer, and Altitude's payout rails","Hello,
+
+The Product Engineer posting is written about Altitude, so that is what I read: a USD and EUR business account paying out to 100+ countries with no US entity needed.
+
+The money movement half I have built. NeoBank runs on Stripe Treasury and Issuing, Plaid ACH, and Stripe Identity for KYC. At WebFlux I ran real time integrations against Kalshi and Polymarket order books.
+
+No Solana or Rust yet. The rest is TypeScript and Postgres, which is your stack.
+
+Is the role open to a May 2027 graduate?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Zum Rails,,careers@zumrails.com,Technical Support Analyst,"Sep 23, 2026, 10:57 a.m.",researched,"Technical Support Analyst, and the Fiserv payfac launch","Hello,
+
+Becoming a payments facilitator through Fiserv in February finished off the card side of the stack. One API across Interac, EFT, ACH, RTP and cards is a genuinely hard thing to have built.
+
+I have built a small version of it. NeoBank runs Plaid ACH, Stripe Treasury and Issuing, and Stripe Identity for KYC. At Fincnx I was sole developer on a finance platform serving 1,500+ users, which meant I owned the failed transactions and the API errors.
+
+The 1 to 3 year band fits me. Can I send a resume?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+d1g1t,Allysone McGreal,allysone.mcgreal@d1g1t.com,"Senior Software Engineer, Integrations (T…","Sep 23, 2026, 11:23 a.m.",researched,"Integrations role, or the Solutions Engineer one","Hello,
+
+Shipping an MCP server that connects the platform to Claude is a more interesting detail than the awards, and it is what made me look closer.
+
+The Integrations posting asks for 5+ years and Airflow, neither of which I have. But at Fincnx I was sole developer on a finance platform serving 1,500+ users and built algorithmic trading prototypes for Bank of Montreal, National Bank and Investment Planning Council Canada, which is the buyer you sell to.
+
+Carleton CS, May 2027. Is the Solutions Engineer role a better fit for me?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Found,,hiring@found.com,"Staff Software Engineer, Platform (Vancou…","Sep 23, 2026, 11:49 a.m.",researched,Same problem I already work on,"Hello,
+
+Found is close to the product I work on now. At ReInvest Wealth, Canadian bookkeeping software, I built the AI receipt pipeline and the eval system that took its matching to 97% accuracy. Receipts, categorisation and tax for people with no back office is the problem you consolidated into one place.
+
+I also noticed your engineering roles hire in Canada, which is rarer than it should be. I am in Ottawa, Carleton CS, graduating May 2027.
+
+The open platform role is well above my level. Is there a junior one coming?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Questrade,,careers@questrade.com,,"Sep 23, 2026, 12:15 p.m.",researched,"Software engineer, req 3933, and Questrade MCP","Hello,
+
+Questrade MCP putting client accounts behind Claude and ChatGPT is a bolder move than most Canadian institutions would sign off on, and it is why I am writing rather than only applying.
+
+I am looking at Software Engineer, req 3933. Node, TypeScript and GCP is what I work in. At Fincnx I built real time portfolio tracking for 500+ concurrent users at sub 100ms on WebSocket and Redis, which is the streaming pillar on your own technology page.
+
+I finish at Carleton in May 2027 and would relocate to Toronto. Worth a conversation?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Adaptive,,recruiting@adaptive.build,Sales Engineer (Pre-Sales),"Sep 23, 2026, 12:28 p.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Reducto,,founders@reducto.ai,Solutions Engineer,"Sep 23, 2026, 1:07 p.m.",researched,"r-1, and the eval half nobody does","Hello,
+
+r-1 handling complex tables in a single pass at a cent a page is the sort of result that only looks simple after somebody has measured it properly.
+
+I have built the small version of this. At ReInvest Wealth I built AI receipt processing on OpenAI vision with email forwarding ingestion, then the eval system that took matching to 97% accuracy. The evals were the hard part, and the part most people skip.
+
+Carleton CS, May 2027, Canadian. Are you hiring engineers at that level, or interns before it?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Alessa (CaseWare RCM),,hr@alessa.com,,"Sep 24, 2026, 9:00 a.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Alviere,,recruiting@alviere.com,Co-Brand Program Growth Manager,"Sep 24, 2026, 9:26 a.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Speakeasy,Sagar Batchu,jobs@speakeasyapi.dev,Forward Deployed Engineer,"Sep 24, 2026, 9:52 a.m.",researched,"The control plane pivot, from someone under your bar","Hello,
+
+Going from API tooling to an AI control plane is a real bet, and governing what agents are allowed to reach is going to matter well before most enterprises admit it.
+
+My closest work is CRO AI Audit, a retrieval platform I built on FastAPI, ChromaDB and GPT-4, plus the eval system at ReInvest Wealth that took an AI pipeline to 97% matching accuracy. That is building with AI rather than governing it, so I am under your bar and I know it.
+
+Carleton CS, May 2027. Worth keeping in touch for when you hire juniors?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Archer,Benjamin Nguyen,ben@archermoney.com,No current opening listed on YC or compan…,"Sep 24, 2026, 10:18 a.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Campfire,,recruiting@meetcampfire.com,Implementation Manager,"Sep 24, 2026, 10:44 a.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Valon,,talent@valon.com,Software Engineer New Grad,"Sep 24, 2026, 10:57 a.m.",researched,"The New Grad role, after Carrington","Hello,
+
+Closing the Carrington deal in August turned Valon into a technology company that happens to know servicing, rather than a servicer that happens to have software. That is a more interesting place to start.
+
+The New Grad posting asks for 0 to 1 year and names Python, React, Docker and GCP. That is my stack. At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy, inside a regulated product with paying clients.
+
+I am Canadian and graduate May 2027. Is the role open on both counts?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+EvolutionIQ,,recruiting@evolutioniq.com,Agentic Solutions Consultant (Insurance S…,"Sep 24, 2026, 11:23 a.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Highnote,,recruiting@highnote.com,Senior Account Executive - Issuing,"Sep 24, 2026, 11:49 a.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Hometap,,work@hometap.com,Business Operations Analyst,"Sep 24, 2026, 12:15 p.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Kojo,,talent@usekojo.com,,"Sep 24, 2026, 12:28 p.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Liberis,Chess Crossley,chess.crossley@liberis.com,Business Development Manager,"Sep 24, 2026, 12:54 p.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Maxwell,,peopleops@maxwell.com,No engineering opening right now; open ro…,"Sep 25, 2026, 9:13 a.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+"Mural Pay (Mural Technologies, Inc.)",,sinclairt@muralpay.com,Forward Deployed Engineer (FDE),"Sep 25, 2026, 9:39 a.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Tesora,Vivek Rao,founders@tesora.ai,Forward Deployed 'Actuarial' Engineer,"Sep 25, 2026, 10:05 a.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
+Veriff,,agustina.bustinduy@veriff.net,Senior Technical Product Manager (Biometr…,"Sep 25, 2026, 10:18 a.m.",generic,"2027 new grad, two years of fintech already","Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
+
+Sincerely,
+Paul Madut
+Computer Science (BCS 2027), Carleton University
+pmadut2003@gmail.com | linkedin.com/in/paul-madut | github.com/paul-madut
+
+Not the right inbox? Reply and I will not follow up."
