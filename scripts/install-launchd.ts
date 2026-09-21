@@ -19,7 +19,7 @@
  *   Full Disk Access or a different home.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, realpathSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 
@@ -74,8 +74,40 @@ function plist(pnpmPath: string, nodeDir: string): string {
 `;
 }
 
-function which(command: string): string {
-  return execFileSync("/usr/bin/which", [command], { encoding: "utf8" }).trim();
+/**
+ * Where node and pnpm really live.
+ *
+ * `which pnpm` is the wrong answer under a version manager. fnm puts a
+ * per-shell directory on PATH, named after the shell's PID, so `which` gave
+ * /Users/.../fnm_multishells/22213_.../bin/pnpm and the plist recorded a path
+ * tied to whichever terminal happened to run the install. launchd would then
+ * fail to exec it.
+ *
+ * `process.execPath` is the running node binary, already fully resolved, and
+ * pnpm is installed beside it. Recording that version explicitly is also what
+ * we want: better-sqlite3 is pinned to v11, which needs Node 20, so the worker
+ * should keep using this node even if the default is later switched to 22.
+ */
+function toolchain(): { nodeDir: string; pnpmPath: string } {
+  const nodeDir = dirname(process.execPath);
+  const beside = resolve(nodeDir, "pnpm");
+
+  if (existsSync(beside)) return { nodeDir, pnpmPath: beside };
+
+  // No pnpm next to node. Fall back to PATH, but refuse an ephemeral answer
+  // rather than writing a plist that works until this shell closes.
+  const found = execFileSync("/usr/bin/which", ["pnpm"], { encoding: "utf8" }).trim();
+
+  if (found.includes("fnm_multishells") || found.includes("/nvm/versions/")) {
+    const real = realpathSync(found);
+    throw new Error(
+      `pnpm on PATH is a per-shell shim (${found}).\n` +
+        `It resolves to ${real}, which launchd cannot exec directly.\n` +
+        `Install pnpm into ${nodeDir} and run this again.`
+    );
+  }
+
+  return { nodeDir, pnpmPath: found };
 }
 
 function install(): void {
@@ -90,23 +122,31 @@ function install(): void {
     }
   }
 
-  const pnpmPath = which("pnpm");
-  const nodeDir = dirname(which("node"));
+  const { nodeDir, pnpmPath } = toolchain();
 
   mkdirSync(LOG_DIR, { recursive: true });
   mkdirSync(dirname(PLIST_PATH), { recursive: true });
   writeFileSync(PLIST_PATH, plist(pnpmPath, nodeDir));
 
-  // bootout first so a reinstall replaces rather than stacks.
-  execFileSync("/bin/launchctl", ["bootout", `gui/${process.getuid?.()}/${LABEL}`], {
-    stdio: "ignore",
-  });
+  // Bootout first so a reinstall replaces rather than stacks. On a FIRST
+  // install there is nothing loaded and launchctl exits 3, which execFileSync
+  // throws on, so this has to be allowed to fail. Without the catch the
+  // installer could only ever have worked as a reinstall.
+  try {
+    execFileSync("/bin/launchctl", ["bootout", `gui/${process.getuid?.()}/${LABEL}`], {
+      stdio: "ignore",
+    });
+  } catch {
+    // Not loaded. That is the normal state the first time.
+  }
+
   execFileSync("/bin/launchctl", ["bootstrap", `gui/${process.getuid?.()}`, PLIST_PATH]);
 
   console.log(`Installed ${LABEL}.`);
   console.log(`  runs        every ${INTERVAL_SECONDS / 60} minutes while the Mac is awake`);
   console.log(`  working dir ${REPO}`);
   console.log(`  logs        ${LOG_DIR}/worker.log`);
+  console.log(`  node        ${process.execPath}`);
   console.log(
     `\nNothing is delivered until OUTREACH_LIVE=1 is in ${REPO}/.env.local.` +
       `\nThe worker reads that file itself, so no relaunch of anything else is needed.`
@@ -130,8 +170,8 @@ function status(): void {
     const output = execFileSync("/bin/launchctl", ["print", `gui/${process.getuid?.()}/${LABEL}`], {
       encoding: "utf8",
     });
-    const state = /state = (\S+)/.exec(output)?.[1] ?? "unknown";
-    const lastExit = /last exit code = (\S+)/.exec(output)?.[1] ?? "none yet";
+    const state = /state = (.+)/.exec(output)?.[1].trim() ?? "unknown";
+    const lastExit = /last exit code = (.+)/.exec(output)?.[1].trim() ?? "none yet";
     console.log(`Installed. state ${state}, last exit code ${lastExit}.`);
     console.log(`Logs: ${LOG_DIR}/worker.log`);
   } catch {
