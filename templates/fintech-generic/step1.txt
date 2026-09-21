@@ -1,0 +1,7 @@
+Hello,
+
+I am a Carleton computer science student graduating May 2027, based in Ottawa, and I have spent the last two years building fintech in production rather than in coursework.
+
+At ReInvest Wealth I built an AI receipt pipeline and the eval system that took its matching to 97% accuracy. At Fincnx I was the sole developer on a finance platform serving 1,500+ users, including real time portfolio tracking for 500+ concurrent users at sub 100ms.
+
+Are you taking 2027 new grads, or interns before then?
