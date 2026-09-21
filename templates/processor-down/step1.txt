@@ -1,0 +1,9 @@
+Might not be relevant{{#first_name}} {{first_name}}{{/first_name}}, but I saw this on your site: "{{#verbatim_quote_the_hook_first}}{{verbatim_quote_the_hook_first}}{{/verbatim_quote_the_hook_first}}{{^verbatim_quote_the_hook_first}}{{verbatim_quote_the_hook}}{{/verbatim_quote_the_hook_first}}".
+
+If that is still up, every day of it is orders you do not get back.
+
+Two things decide how fast it comes back. Which acquirer will actually board your category, and what has to change on the site first so the next one does not drop you too.
+
+I already went through yours. Want a short video with both answers?
+
+No call needed. Reply yes and I will send it over.

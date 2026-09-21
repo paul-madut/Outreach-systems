@@ -31,6 +31,69 @@ function flag(args: string[], name: string): string | undefined {
   return index >= 0 ? args[index + 1] : undefined;
 }
 
+/**
+ * Select contacts by what the research says about them.
+ *
+ * A segment worth its own campaign is usually a state rather than a category:
+ * "their processor is down right now" cuts across every vertical. That state
+ * only exists in the free text of the research columns, so this matches a
+ * regex against all of it.
+ *
+ * `--not-match` matters as much as `--match`. Searching for "unavailable"
+ * finds the stores that are down and also the one announcing it is "processing
+ * payments again", which is the opposite situation.
+ */
+function contactsMatching(
+  match: string | undefined,
+  notMatch: string | undefined,
+  grade: string | undefined,
+  limit: number | undefined
+): { ids: number[]; rows: { company: string; excerpt: string }[] } | null {
+  if (!match && !notMatch && !grade && !limit) return null;
+
+  const include = match ? new RegExp(match, "i") : null;
+  const exclude = notMatch ? new RegExp(notMatch, "i") : null;
+
+  const rows = getDb()
+    .prepare(
+      `select c.id, p.company, p.vertical, p.custom
+         from contacts c join prospects p on p.id = c.prospect_id
+        where c.channel = 'email' and (? is null or p.grade = ?)
+        order by case p.grade when 'A' then 0 when 'B' then 1 when 'C' then 2 else 3 end,
+                 p.company`
+    )
+    .all(grade ?? null, grade ?? null) as {
+    id: number;
+    company: string;
+    vertical: string | null;
+    custom: string;
+  }[];
+
+  const ids: number[] = [];
+  const matched: { company: string; excerpt: string }[] = [];
+
+  for (const row of rows) {
+    const research = [row.vertical, ...Object.values(JSON.parse(row.custom || "{}"))]
+      .filter(Boolean)
+      .join(" | ");
+
+    if (include && !include.test(research)) continue;
+    if (exclude && exclude.test(research)) continue;
+    if (limit && ids.length >= limit) break;
+
+    ids.push(row.id);
+
+    const hit = include?.exec(research);
+    const at = hit?.index ?? 0;
+    matched.push({
+      company: row.company,
+      excerpt: research.slice(Math.max(0, at - 30), at + 70).replace(/\s+/g, " ").trim(),
+    });
+  }
+
+  return { ids, rows: matched };
+}
+
 function campaignIdFor(name: string): number {
   const row = getDb().prepare("select id from campaigns where name = ?").get(name) as
     | { id: number }
@@ -138,7 +201,22 @@ function preview(args: string[]): void {
 
   const db = getDb();
   const campaignId = campaignIdFor(name);
-  const { eligible, ineligible } = previewEnrollment(db, campaignId);
+
+  const selection = contactsMatching(
+    flag(args, "match"),
+    flag(args, "not-match"),
+    flag(args, "grade"),
+    flag(args, "limit") ? Number(flag(args, "limit")) : undefined
+  );
+
+  if (selection) {
+    console.log(`\n${selection.ids.length} match the filter:`);
+    for (const row of selection.rows) {
+      console.log(`  ${row.company.slice(0, 30).padEnd(30)} ...${row.excerpt}...`);
+    }
+  }
+
+  const { eligible, ineligible } = previewEnrollment(db, campaignId, selection?.ids);
 
   console.log(`\n${eligible.length} eligible, ${ineligible.length} not.`);
 
@@ -153,7 +231,7 @@ function preview(args: string[]): void {
 
   if (eligible.length === 0) return;
 
-  const render = dryRender(db, campaignId, eligible.slice(0, Number(flag(args, "limit") ?? 3)));
+  const render = dryRender(db, campaignId, eligible.slice(0, Number(flag(args, "show") ?? 3)));
 
   if (render.failed.length > 0) {
     console.log(`\n${render.failed.length} would not render:`);
@@ -191,17 +269,16 @@ function enroll(args: string[]): void {
   const limit = flag(args, "limit") ? Number(flag(args, "limit")) : undefined;
   const commit = args.includes("--commit");
 
-  let contactIds: number[] | undefined;
-  if (grade || limit) {
-    const rows = db
-      .prepare(
-        `select c.id from contacts c join prospects p on p.id = c.prospect_id
-          where c.channel = 'email' and (? is null or p.grade = ?)
-          order by case p.grade when 'A' then 0 when 'B' then 1 when 'C' then 2 else 3 end, p.company
-          limit ?`
-      )
-      .all(grade ?? null, grade ?? null, limit ?? 100000) as { id: number }[];
-    contactIds = rows.map((row) => row.id);
+  const selection = contactsMatching(
+    flag(args, "match"),
+    flag(args, "not-match"),
+    grade,
+    limit
+  );
+  const contactIds = selection?.ids;
+
+  if (selection) {
+    console.log(`${selection.ids.length} contacts match the filter.`);
   }
 
   const result = enrollContacts(db, campaignId, { contactIds, dryRun: !commit });

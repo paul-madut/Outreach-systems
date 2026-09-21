@@ -119,6 +119,8 @@ Three hard bounces in a day pauses the mailbox.
 | `pnpm import:csv <file>` | Import a sheet export. Add `--commit` to write |
 | `pnpm mailbox list\|add\|check\|pause\|resume` | Manage sending identities |
 | `pnpm campaign list\|create\|step\|preview\|enroll\|activate\|pause` | Build and run a sequence |
+
+`campaign preview` and `campaign enroll` take `--match` and `--not-match`, which filter prospects by a regex over their research text. That is how a segment like "their processor is down right now" gets selected, since the state lives in free text rather than in a column. See `templates/processor-down/README.md`.
 | `pnpm seed:suppressions [file]` | Load a domain exclude list |
 | `pnpm schedule install\|status\|uninstall` | The launchd job |
 | `pnpm demo:seed` | Fill a throwaway database so the dashboard has something in it |
