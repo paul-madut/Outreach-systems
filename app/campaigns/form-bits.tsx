@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import type { MergeField } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { Card, buttonClass } from "../ui";
@@ -24,6 +24,38 @@ export function Field({
       {children}
       {hint && <span className="mt-1 block text-[11px] leading-relaxed text-muted">{hint}</span>}
     </label>
+  );
+}
+
+/**
+ * A label over several controls rather than one.
+ *
+ * Not a <label>. Wrapping a group of buttons in one binds the whole caption to
+ * the first of them, so the Monday button announced itself as "Days Tue Wed
+ * Thu Fri Sat Sun". A labelled group says the name once and leaves each
+ * control its own.
+ */
+export function FieldGroup({
+  label,
+  hint,
+  children,
+  className,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const id = useId();
+
+  return (
+    <div role="group" aria-labelledby={id} className={cn("block", className)}>
+      <span id={id} className="mb-1 block text-[12px] font-medium">
+        {label}
+      </span>
+      {children}
+      {hint && <span className="mt-1 block text-[11px] leading-relaxed text-muted">{hint}</span>}
+    </div>
   );
 }
 

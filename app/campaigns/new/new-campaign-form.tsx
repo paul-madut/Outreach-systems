@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import {
   DayPicker,
   Field,
+  FieldGroup,
   MergeFields,
   StepFields,
   SubmitButton,
@@ -186,9 +187,9 @@ export function NewCampaignForm({
             </p>
           )}
 
-          <Field label="Days">
+          <FieldGroup label="Days">
             <DayPicker value={sendDays} onChange={setSendDays} />
-          </Field>
+          </FieldGroup>
         </Card>
 
         <Card className="space-y-4 p-4">

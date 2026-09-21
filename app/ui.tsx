@@ -253,7 +253,7 @@ export function PageHeading({
 // ------------------------------------------------------------------ buttons
 
 const BUTTON_BASE =
-  "inline-flex select-none items-center justify-center gap-1.5 rounded-sm font-medium " +
+  "inline-flex select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-sm font-medium " +
   "transition-[transform,background-color,border-color,opacity] duration-150 " +
   "ease-[var(--ease-out-quick)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40";
 

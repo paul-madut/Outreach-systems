@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import type { CampaignDetail } from "@/lib/queries";
 import { setCampaignState, updateCampaignAction } from "../../actions";
 import { Card, buttonClass } from "../../ui";
-import { DayPicker, Field, inputClass } from "../form-bits";
+import { DayPicker, Field, FieldGroup, inputClass } from "../form-bits";
 import { cn } from "@/lib/utils";
 
 /**
@@ -129,9 +129,9 @@ export function SettingsPanel({ campaign }: { campaign: CampaignDetail }) {
           </p>
         )}
 
-        <Field label="Days">
+        <FieldGroup label="Days">
           <DayPicker value={sendDays} onChange={setSendDays} />
-        </Field>
+        </FieldGroup>
       </Card>
 
       <Card className="space-y-4 p-4">
