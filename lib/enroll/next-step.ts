@@ -188,10 +188,11 @@ export function createNextStep(
     return skip(`Step ${nextNumber} failed the content check: ${blocking.join(" ")}`);
   }
 
+  // 'draft' counts here too: an unapproved message still owns its slot.
   const taken = db
     .prepare(
       `select scheduled_at, sent_at from messages
-        where mailbox_id = ? and status in ('scheduled', 'sending', 'sent')`
+        where mailbox_id = ? and status in ('draft', 'scheduled', 'sending', 'sent')`
     )
     .all(mailbox.id) as { scheduled_at: string | null; sent_at: string | null }[];
 

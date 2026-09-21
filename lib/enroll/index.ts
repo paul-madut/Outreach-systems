@@ -352,10 +352,15 @@ export function enrollContacts(
   // Occupancy is per MAILBOX across every campaign, because the cap and the
   // spacing belong to the mailbox. Slots already taken by a sibling campaign
   // have to be visible here or the two would each schedule a full day.
+  //
+  // 'draft' counts. A draft already owns its slot and will occupy it the
+  // moment it is approved. Leaving it out meant enrolling several batches
+  // before approving any of them stacked them all onto the same days: three
+  // batches put 31 messages on one day against a cap of 20.
   const taken = db
     .prepare(
       `select scheduled_at, sent_at from messages
-        where mailbox_id = ? and status in ('scheduled', 'sending', 'sent')`
+        where mailbox_id = ? and status in ('draft', 'scheduled', 'sending', 'sent')`
     )
     .all(mailbox.id) as { scheduled_at: string | null; sent_at: string | null }[];
 
