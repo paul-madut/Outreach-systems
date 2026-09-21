@@ -105,6 +105,38 @@ export function firstSentence(value: string, minLength = 40): string | null {
   return `${sentence.replace(/[.!?]$/, "")}...`;
 }
 
+/**
+ * A company name fit to say out loud, exposed as `{{company_short}}`.
+ *
+ * The research sheets carry names as records rather than as address: "Arete
+ * Hemp LLC (wholesale)", "CertaPeptides (CERTALAB S.R.L.)", "E-CIGARETTES.CA
+ * INC.". Writing "Is that the case for Exo Club (Exodus)?" reads like a
+ * database row, which undoes the personal tone the rest of the email is for.
+ *
+ * The full value stays on `{{company}}`, because that is the identity.
+ */
+export function shortCompanyName(company: string): string {
+  let name = company.trim();
+
+  // A trailing parenthetical is a research note, not part of the name.
+  name = name.replace(/\s*\([^)]*\)\s*$/, "").trim();
+
+  // Legal suffixes, with or without punctuation.
+  name = name
+    .replace(/[,.]?\s+(inc|llc|ltd|limited|corp|corporation|co|gmbh|bv|srl|s\.r\.l|pty|plc)\.?$/i, "")
+    .trim();
+
+  // Shouted names read as shouting. Only touch ones that are entirely caps.
+  const letters = name.replace(/[^a-zA-Z]/g, "");
+  if (letters.length > 3 && letters === letters.toUpperCase()) {
+    name = name
+      .toLowerCase()
+      .replace(/\b([a-z])/g, (char) => char.toUpperCase());
+  }
+
+  return name || company.trim();
+}
+
 function stringify(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
@@ -139,8 +171,11 @@ export function buildContext(sources: ContextSources): TemplateContext {
 
   const { first, last } = splitName(sources.contact.name);
 
+  const company = stringify(sources.prospect.company);
+
   Object.assign(context, {
-    company: stringify(sources.prospect.company),
+    company,
+    company_short: company ? shortCompanyName(company) : "",
     domain: stringify(sources.prospect.domain),
     vertical: stringify(sources.prospect.vertical),
     grade: stringify(sources.prospect.grade),

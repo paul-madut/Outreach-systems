@@ -1,4 +1,5 @@
 import Papa from "papaparse";
+import { unescapeMarkdown } from "./normalize";
 
 /**
  * CSV parsing.
@@ -96,7 +97,7 @@ export function parseCsv(text: string): ParsedCsv {
 
     headers.forEach((header, index) => {
       if (!header) return;
-      const value = (cells[index] ?? "").trim();
+      const value = unescapeMarkdown((cells[index] ?? "").trim());
       row[header] = value;
       if (value) hasValue = true;
     });

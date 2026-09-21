@@ -33,6 +33,17 @@ So the line became "nearly every {{vertical}} store I look at is running without
 The ask also changed. The original offers a short video. There is no video.
 The close that actually earned a reply in September was an offer to go through the rest of the site and report what an underwriter would flag, which costs nothing to promise and is worth something to receive.
 
+## Leading with their own words
+
+The first draft opened with "nearly every {{vertical}} store I look at is stuck without card payments" and did not reach anything specific until paragraph four.
+
+Two problems showed up only when it was rendered against real rows.
+`{{vertical}}` is free text and does not slot into "every X store": it produced "every thca / d8 / cbd store" and "every thc/delta-8 vapes store".
+And the first forty words were identical for all twenty prospects, which is exactly what a template is supposed to hide.
+
+Leading with the prospect's own quote fixes both.
+It is specific from word six, it drops the vertical line entirely, and it is shorter.
+
 ## The research line
 
 The quote is the proof the email rests on, so it is included when it exists and dropped cleanly when it does not:

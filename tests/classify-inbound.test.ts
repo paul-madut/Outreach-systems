@@ -406,6 +406,16 @@ describe("curt refusals", () => {
     }
   );
 
+  it("treats a bare no as a reply, not a permanent opt-out", () => {
+    // Step 1 asks a yes or no question, so "no" answers that question. It stops
+    // the sequence because it is a reply, but it must not blocklist the address.
+    const result = classifyInbound(
+      message({ headers: { from: "owner@store.com", subject: "Re: Quick question" }, text: "No" })
+    );
+    expect(result.classification).toBe("reply");
+    expect(result.suppress).toBeUndefined();
+  });
+
   it("does not catch the word inside a real reply", () => {
     const result = classifyInbound(
       message({

@@ -161,7 +161,14 @@ function looksLikeAutoReply(message: InboundMessage): boolean {
  * plainly said no. Length-bounded so a real reply that happens to use the word
  * ("we had to stop taking cards in March") is not caught.
  */
-const CURT_REFUSAL = /^\W*(stop|unsubscribe|remove|no|no thanks|not interested|opt out)\W*$/i;
+/**
+ * Deliberately excludes a bare "no".
+ *
+ * Step 1 ends with a yes or no question, so "no" is an answer to that question
+ * and not a request to never be contacted again. It still stops the sequence,
+ * because it is a reply, but it must not go on the permanent suppression list.
+ */
+const CURT_REFUSAL = /^\W*(stop|unsubscribe|remove me|remove|no thanks|no thank you|not interested|opt out)\W*$/i;
 const CURT_REFUSAL_MAX_CHARS = 40;
 
 function findUnsubscribeIntent(message: InboundMessage): string | null {

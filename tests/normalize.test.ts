@@ -11,6 +11,7 @@ import {
   parseHoldReason,
   looksLikeInbox,
   parseSheetBoolean,
+  unescapeMarkdown,
 } from "@/lib/import/normalize";
 
 // Every input below is a value that appears in Paul's actual research sheets.
@@ -222,5 +223,20 @@ describe("looksLikeInbox", () => {
   it("is false when there is nothing to judge", () => {
     expect(looksLikeInbox(null, null)).toBe(false);
     expect(looksLikeInbox("", "")).toBe(false);
+  });
+});
+
+describe("unescapeMarkdown", () => {
+  it("removes escaping that would otherwise go out in an email", () => {
+    // A real quote came through as: Pay by Bank \[...\] and Visa \& Mastercard
+    expect(unescapeMarkdown("Pay by Bank \\[...\\] and Visa \\& Mastercard")).toBe(
+      "Pay by Bank [...] and Visa & Mastercard"
+    );
+  });
+
+  it("leaves ordinary text alone", () => {
+    expect(unescapeMarkdown("We accept Zelle, Cash App or crypto.")).toBe(
+      "We accept Zelle, Cash App or crypto."
+    );
   });
 });

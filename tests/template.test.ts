@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildContext,
   firstSentence,
+  shortCompanyName,
   splitName,
   toTemplateKey,
 } from "@/lib/template/context";
@@ -370,5 +371,52 @@ describe("derived _first fields", () => {
 
     // Absent rather than duplicated, so a template can branch on it.
     expect(context.quote_first).toBeUndefined();
+  });
+});
+
+describe("shortCompanyName", () => {
+  it("drops the research parenthetical", () => {
+    // "Is that the case for Exo Club (Exodus)?" reads like a database row.
+    expect(shortCompanyName("Exo Club (Exodus)")).toBe("Exo Club");
+    expect(shortCompanyName("Arete Hemp LLC (wholesale)")).toBe("Arete Hemp");
+    expect(shortCompanyName("Better Living Peptides (BLP Research)")).toBe("Better Living Peptides");
+  });
+
+  it("drops a legal suffix", () => {
+    expect(shortCompanyName("BlueNex Labs Inc.")).toBe("BlueNex Labs");
+    expect(shortCompanyName("Pure Progress Ltd")).toBe("Pure Progress");
+  });
+
+  it("stops a shouted name from shouting", () => {
+    expect(shortCompanyName("E-CIGARETTES.CA INC.")).toBe("E-Cigarettes.Ca");
+  });
+
+  it("leaves a deliberate mixed-case name alone", () => {
+    expect(shortCompanyName("CryptoBuyX")).toBe("CryptoBuyX");
+    expect(shortCompanyName("Otie's Botanicals")).toBe("Otie's Botanicals");
+  });
+
+  it("never returns an empty name", () => {
+    expect(shortCompanyName("LLC")).toBe("LLC");
+  });
+});
+
+describe("off-topic quote warning", () => {
+  it("flags a quote that says nothing about payments", () => {
+    // Real case: a prospect whose research quote was its company registration.
+    const findings = lintMessage(
+      "Quick question",
+      'Your own page says "Company Name: FORGETRADE LIMITED, a Hong Kong private company limited by shares".'
+    );
+    expect(findings.some((f) => f.rule === "off-topic-quote")).toBe(true);
+    expect(hasBlockingFindings(findings)).toBe(false);
+  });
+
+  it("stays quiet when the quote is about payments", () => {
+    const findings = lintMessage(
+      "Quick question",
+      'Your own page says "Do you accept credit cards? No, we do not, and we do not plan on it."'
+    );
+    expect(findings.some((f) => f.rule === "off-topic-quote")).toBe(false);
   });
 });

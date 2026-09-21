@@ -8,6 +8,19 @@
 
 export type Channel = "email" | "contact_form" | "phone" | "none";
 
+/**
+ * Undo markdown escaping.
+ *
+ * Values that travel through a markdown-shaped export come back with
+ * backslashes in front of punctuation: `\[...\]`, `\&`, `\#`. A verbatim
+ * quote carrying `\[...\]` goes out in an email exactly like that, which
+ * looks like a bug to the person reading it. A backslash before punctuation
+ * is never meaningful in prose, so removing it is safe.
+ */
+export function unescapeMarkdown(value: string): string {
+  return value.replace(/\\([[\]\\&#_*~`<>|{}()+.!-])/g, "$1");
+}
+
 export interface ParsedChannel {
   channel: Channel;
   /** The payload that was stuffed into the channel cell, e.g. a phone number. */

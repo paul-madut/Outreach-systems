@@ -67,6 +67,10 @@ const STOCK_OPENERS = [
   "to whom it may concern",
 ];
 
+/** Words that make a quote about payments, and therefore about the offer. */
+const PAYMENT_WORDS =
+  /\b(card|cards|credit|debit|visa|mastercard|amex|payment|payments|processor|processing|checkout|pay|paid|paying|transfer|wire|zelle|venmo|crypto|bitcoin|btc|eth|usdt|e-?transfer|interac|paypal|cashapp|cash app|sepa|bank|invoice|merchant|acquirer|chargeback|refund|billing)\b/i;
+
 const EM_DASH = "—";
 const EN_DASH = "–";
 
@@ -218,6 +222,21 @@ export function lintMessage(
       rule: "semicolon",
       severity: "warn",
       message: "Contains a semicolon. The brief asks for short, separate sentences.",
+    });
+  }
+
+  // The quote is the proof the whole email rests on, so one that is not about
+  // payments makes the message a non-sequitur. A real example: a prospect whose
+  // quote was its Hong Kong company registration, which read as
+  // "Your own page is what made me look. It says Company Name: FORGETRADE
+  // LIMITED", meaning nothing to the reader.
+  const quoted = combined.match(/"([^"]{20,})"/);
+  if (quoted && !PAYMENT_WORDS.test(quoted[1])) {
+    findings.push({
+      rule: "off-topic-quote",
+      severity: "warn",
+      message: "The quoted line does not mention payments, so it may not support the point.",
+      excerpt: quoted[1].slice(0, 80),
     });
   }
 
