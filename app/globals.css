@@ -1,68 +1,164 @@
 @import "tailwindcss";
 
 /**
- * Tokens live here rather than in a tailwind.config, which is the Tailwind v4
- * CSS-first convention. A dense, quiet palette: this is a working tool that
- * gets read many times a day, so contrast carries meaning rather than decoration.
+ * Instrument panel.
+ *
+ * This is a tool for making go or no-go calls on real email, read for twenty
+ * minutes a day. So it is built like a cockpit rather than a landing page:
+ * dense, calm, hairline rules instead of shadows, and colour reserved entirely
+ * for meaning. Nothing decorative is lit.
+ *
+ * Every status colour means exactly one thing everywhere in the app, and no
+ * status is ever communicated by colour alone - each carries a glyph too.
  */
 @theme {
-  --color-canvas: #fbfbfa;
+  /* Warm paper, so a screen full of small text is not glaring. */
+  --color-canvas: #faf9f7;
   --color-surface: #ffffff;
-  --color-raised: #f3f3f1;
-  --color-line: #e3e3df;
-  --color-line-strong: #c9c9c2;
-  --color-ink: #1a1a18;
-  --color-muted: #6b6b64;
-  --color-faint: #9a9a92;
+  --color-raised: #f2f0ec;
+  --color-sunken: #edeae4;
+  --color-line: #e4e0d9;
+  --color-line-strong: #cbc5ba;
 
-  --color-accent: #1f5e46;
-  --color-accent-soft: #e6f0eb;
+  --color-ink: #16150f;
+  --color-muted: #6a655a;
+  --color-faint: #9b958a;
 
-  /* Status colours. Each one means one thing, everywhere. */
-  --color-ok: #1f5e46;
-  --color-ok-soft: #e6f0eb;
+  --color-accent: #1d6b4f;
+  --color-accent-hover: #175840;
+  --color-accent-soft: #e4efe9;
+  --color-accent-line: #b9d6c8;
+
+  /* Signal palette. One meaning each, used nowhere else. */
+  --color-ok: #1d6b4f;
+  --color-ok-soft: #e4efe9;
   --color-warn: #8a5a12;
-  --color-warn-soft: #fbf0dd;
+  --color-warn-soft: #faefda;
   --color-danger: #9b2c2c;
-  --color-danger-soft: #fbe9e9;
+  --color-danger-soft: #fae9e9;
   --color-info: #2b4c7e;
-  --color-info-soft: #e8eefa;
+  --color-info-soft: #e7edf8;
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-instrument-serif), Georgia, serif;
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+
+  /* Motion. Everything under 200ms, ease-out, transform and opacity only. */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-quick: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   @theme {
-    --color-canvas: #16161a;
-    --color-surface: #1c1c21;
-    --color-raised: #24242a;
-    --color-line: #2f2f36;
-    --color-line-strong: #43434c;
-    --color-ink: #ececef;
-    --color-muted: #a0a0aa;
-    --color-faint: #6e6e78;
+    --color-canvas: #100f12;
+    --color-surface: #171619;
+    --color-raised: #1f1e22;
+    --color-sunken: #0b0a0c;
+    --color-line: #2a282e;
+    --color-line-strong: #423f48;
 
-    --color-accent: #6fbf9b;
-    --color-accent-soft: #1b2f27;
+    --color-ink: #eceaf0;
+    --color-muted: #9c96a6;
+    --color-faint: #6b6675;
 
-    --color-ok: #6fbf9b;
-    --color-ok-soft: #1b2f27;
-    --color-warn: #d9a74a;
-    --color-warn-soft: #302718;
-    --color-danger: #e08585;
-    --color-danger-soft: #331d1d;
-    --color-info: #8ab0e8;
-    --color-info-soft: #1b2436;
+    --color-accent: #58b98d;
+    --color-accent-hover: #6fc79e;
+    --color-accent-soft: #14271f;
+    --color-accent-line: #234337;
+
+    --color-ok: #58b98d;
+    --color-ok-soft: #14271f;
+    --color-warn: #d6a74a;
+    --color-warn-soft: #2b2113;
+    --color-danger: #e08a8a;
+    --color-danger-soft: #2d1919;
+    --color-info: #85abe6;
+    --color-info-soft: #16202f;
   }
+}
+
+html {
+  color-scheme: light dark;
 }
 
 body {
   background: var(--color-canvas);
   color: var(--color-ink);
+  font-feature-settings: "cv05" 1, "ss01" 1;
 }
 
-/* Tabular numerals so counts line up column to column. */
+/* Data lines up column to column, always. */
 .nums {
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  letter-spacing: -0.01em;
+}
+
+/* Page titles. The one place with a voice. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+
+/*
+ * A visible focus ring everywhere. This app is driven by keyboard during
+ * review, so losing track of focus is losing your place.
+ */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Staggered on lists so a page arrives rather than blinking into place. */
+.rise {
+  animation: rise 220ms var(--ease-out-soft) both;
+}
+
+@keyframes pulse-once {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 40%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+.pulse-once {
+  animation: pulse-once 420ms var(--ease-out-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * Opacity is kept as the fallback rather than removing feedback entirely,
+   * because an action with no acknowledgement reads as a broken app.
+   */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+
+  .rise {
+    animation: none;
+    opacity: 1;
+  }
 }

@@ -1,80 +1,172 @@
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-/** Small shared pieces. Deliberately plain: this is a tool, not a product page. */
-
-export function PageHeading({
-  title,
-  subtitle,
-  right,
-}: {
-  title: string;
-  subtitle?: string;
-  right?: React.ReactNode;
-}) {
-  return (
-    <div className="mb-5 flex items-end justify-between gap-4">
-      <div>
-        <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
-      </div>
-      {right}
-    </div>
-  );
-}
-
-export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn("rounded-lg border border-line bg-surface", className)}>{children}</div>
-  );
-}
-
-export function Empty({ title, hint }: { title: string; hint?: string }) {
-  return (
-    <Card className="px-5 py-10 text-center">
-      <p className="text-sm text-ink">{title}</p>
-      {hint && <p className="mx-auto mt-1 max-w-md text-sm text-muted">{hint}</p>}
-    </Card>
-  );
-}
-
 /**
- * Status colour is meaning, not decoration. The same status is the same colour
- * everywhere, so the queue can be scanned without reading the words.
+ * The design system.
+ *
+ * Two rules run through all of it.
+ *
+ * A status is never communicated by colour alone. Every one carries a glyph,
+ * so it survives being colourblind, printed, or glanced at in peripheral
+ * vision. That matters here because the statuses are not decorative: one of
+ * them means "this may or may not have reached a real person".
+ *
+ * Nothing is lit that does not mean something. No gradients, no shadows for
+ * depth's sake, hairline rules instead of borders with weight.
  */
+
+// ------------------------------------------------------------------ status
+
 const TONES = {
-  neutral: "bg-raised text-muted",
-  ok: "bg-ok-soft text-ok",
-  warn: "bg-warn-soft text-warn",
-  danger: "bg-danger-soft text-danger",
-  info: "bg-info-soft text-info",
+  neutral: {
+    text: "text-muted",
+    soft: "bg-raised text-muted",
+    dot: "bg-faint",
+  },
+  ok: { text: "text-ok", soft: "bg-ok-soft text-ok", dot: "bg-ok" },
+  warn: { text: "text-warn", soft: "bg-warn-soft text-warn", dot: "bg-warn" },
+  danger: { text: "text-danger", soft: "bg-danger-soft text-danger", dot: "bg-danger" },
+  info: { text: "text-info", soft: "bg-info-soft text-info", dot: "bg-info" },
 } as const;
 
 export type Tone = keyof typeof TONES;
 
-export const STATUS_TONE: Record<string, Tone> = {
-  // messages
-  draft: "neutral",
-  scheduled: "info",
-  sending: "info",
-  sent: "ok",
-  uncertain: "warn",
-  failed: "danger",
-  cancelled: "neutral",
+/**
+ * Every status in the app, in one place, with what it means in plain words.
+ *
+ * The explanation is not documentation: it is rendered in the interface, on
+ * hover and in the legend, because "uncertain" is not self-evident and
+ * guessing wrong about it costs a prospect.
+ */
+export const STATUS: Record<
+  string,
+  { tone: Tone; glyph: string; label: string; means: string }
+> = {
+  draft: {
+    tone: "neutral",
+    glyph: "○",
+    label: "draft",
+    means: "Written and checked, waiting for you to approve it. Nothing sends until you do.",
+  },
+  scheduled: {
+    tone: "info",
+    glyph: "◷",
+    label: "scheduled",
+    means: "Approved and queued. It will go out at its own time, inside the sending window.",
+  },
+  sending: {
+    tone: "info",
+    glyph: "◐",
+    label: "sending",
+    means: "The worker has this one in hand right now.",
+  },
+  sent: { tone: "ok", glyph: "●", label: "sent", means: "Accepted by the mail server." },
+  uncertain: {
+    tone: "warn",
+    glyph: "◍",
+    label: "unknown",
+    means:
+      "The connection dropped mid-send, so this may or may not have arrived. It will never be resent on its own. Check your Sent folder and tell it which happened.",
+  },
+  failed: {
+    tone: "danger",
+    glyph: "✕",
+    label: "failed",
+    means: "Rejected, and retried as far as it is going to be. Nothing was delivered.",
+  },
+  cancelled: {
+    tone: "neutral",
+    glyph: "–",
+    label: "cancelled",
+    means: "Stopped before sending, usually because the prospect replied or opted out.",
+  },
   // enrollments and campaigns
-  active: "ok",
-  paused: "warn",
-  archived: "neutral",
-  replied: "ok",
-  bounced: "danger",
-  stopped: "neutral",
-  completed: "neutral",
+  active: { tone: "ok", glyph: "●", label: "active", means: "Running." },
+  paused: {
+    tone: "warn",
+    glyph: "‖",
+    label: "paused",
+    means: "Nothing will send from this until you resume it.",
+  },
+  archived: { tone: "neutral", glyph: "–", label: "archived", means: "Kept for the record." },
+  replied: {
+    tone: "ok",
+    glyph: "↩",
+    label: "replied",
+    means: "A human answered. Remaining follow-ups were cancelled.",
+  },
+  bounced: {
+    tone: "danger",
+    glyph: "⤺",
+    label: "bounced",
+    means: "The address rejected it permanently. It is now on the suppression list.",
+  },
+  stopped: {
+    tone: "neutral",
+    glyph: "■",
+    label: "stopped",
+    means: "Ended early, by an opt-out or by hand.",
+  },
+  completed: {
+    tone: "neutral",
+    glyph: "✓",
+    label: "finished",
+    means: "Every step was sent and nobody replied.",
+  },
   // inbound
-  reply: "ok",
-  auto_reply: "neutral",
-  bounce: "danger",
-  unsubscribe: "warn",
-  unmatched: "info",
+  reply: { tone: "ok", glyph: "↩", label: "reply", means: "A person wrote back." },
+  auto_reply: {
+    tone: "neutral",
+    glyph: "⟳",
+    label: "auto",
+    means:
+      "A robot wrote back: a helpdesk ticket receipt or an out-of-office. The sequence deliberately keeps going.",
+  },
+  bounce: { tone: "danger", glyph: "⤺", label: "bounce", means: "Delivery failed." },
+  unsubscribe: {
+    tone: "warn",
+    glyph: "⊘",
+    label: "opt-out",
+    means: "They asked to stop. The address is suppressed permanently.",
+  },
+  unmatched: {
+    tone: "info",
+    glyph: "?",
+    label: "unmatched",
+    means: "Arrived in the mailbox but could not be tied to anything you sent.",
+  },
 };
+
+export function StatusBadge({
+  status,
+  size = "sm",
+}: {
+  status: string;
+  size?: "sm" | "xs";
+}) {
+  const meta = STATUS[status] ?? {
+    tone: "neutral" as Tone,
+    glyph: "·",
+    label: status,
+    means: "",
+  };
+
+  return (
+    <span
+      title={meta.means}
+      className={cn(
+        "inline-flex select-none items-center gap-1 rounded-xs font-medium",
+        TONES[meta.tone].soft,
+        size === "xs" ? "px-1 py-px text-[10px]" : "px-1.5 py-0.5 text-[11px]"
+      )}
+    >
+      <span aria-hidden className="leading-none opacity-80">
+        {meta.glyph}
+      </span>
+      {meta.label}
+    </span>
+  );
+}
 
 export function Badge({
   children,
@@ -86,8 +178,8 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium",
-        TONES[tone]
+        "inline-flex items-center rounded-xs px-1.5 py-0.5 text-[11px] font-medium",
+        TONES[tone].soft
       )}
     >
       {children}
@@ -95,36 +187,107 @@ export function Badge({
   );
 }
 
-export function StatusBadge({ status }: { status: string }) {
-  return <Badge tone={STATUS_TONE[status] ?? "neutral"}>{status.replace("_", " ")}</Badge>;
+export function Dot({ tone }: { tone: Tone }) {
+  return <span className={cn("inline-block size-1.5 rounded-full", TONES[tone].dot)} />;
 }
 
-export function Stat({ label, value, tone }: { label: string; value: number; tone?: Tone }) {
+// ----------------------------------------------------------------- surfaces
+
+export function Card({
+  children,
+  className,
+  interactive,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  interactive?: boolean;
+}) {
   return (
-    <div>
-      <div className={cn("nums text-xl font-semibold", tone === "danger" && "text-danger", tone === "warn" && "text-warn")}>
-        {value}
-      </div>
-      <div className="text-xs text-muted">{label}</div>
+    <div
+      className={cn(
+        "rounded-md border border-line bg-surface",
+        interactive &&
+          "transition-colors duration-150 ease-[var(--ease-out-quick)] hover:border-line-strong",
+        className
+      )}
+    >
+      {children}
     </div>
   );
 }
 
-export function formatWhen(iso: string | null): string {
-  if (!iso) return "-";
-  const date = new Date(iso);
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+export function PageHeading({
+  title,
+  subtitle,
+  right,
+}: {
+  title: string;
+  subtitle?: React.ReactNode;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 className="display text-2xl">{title}</h1>
+        {subtitle && <p className="mt-1 max-w-2xl text-sm text-muted">{subtitle}</p>}
+      </div>
+      {right}
+    </div>
+  );
 }
+
+// ------------------------------------------------------------------ buttons
+
+const BUTTON_BASE =
+  "inline-flex select-none items-center justify-center gap-1.5 rounded-sm font-medium " +
+  "transition-[transform,background-color,border-color,opacity] duration-150 " +
+  "ease-[var(--ease-out-quick)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40";
+
+const BUTTON_VARIANTS = {
+  primary: "bg-accent text-white hover:bg-accent-hover",
+  secondary: "border border-line-strong bg-surface text-ink hover:bg-raised",
+  ghost: "text-muted hover:bg-raised hover:text-ink",
+  danger: "border border-line-strong bg-surface text-danger hover:bg-danger-soft",
+} as const;
+
+const BUTTON_SIZES = {
+  sm: "h-7 px-2.5 text-xs",
+  md: "h-8 px-3 text-[13px]",
+} as const;
+
+export function buttonClass(
+  variant: keyof typeof BUTTON_VARIANTS = "secondary",
+  size: keyof typeof BUTTON_SIZES = "sm"
+): string {
+  return cn(BUTTON_BASE, BUTTON_VARIANTS[variant], BUTTON_SIZES[size]);
+}
+
+export function LinkButton({
+  href,
+  children,
+  variant = "secondary",
+  size = "sm",
+  className,
+}: {
+  href: string;
+  children: React.ReactNode;
+  variant?: keyof typeof BUTTON_VARIANTS;
+  size?: keyof typeof BUTTON_SIZES;
+  className?: string;
+}) {
+  return (
+    <Link href={href} className={cn(buttonClass(variant, size), className)}>
+      {children}
+    </Link>
+  );
+}
+
+// ------------------------------------------------------------------- tables
 
 export function Table({ children }: { children: React.ReactNode }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[40rem] border-collapse text-sm">{children}</table>
+      <table className="w-full min-w-[44rem] border-collapse text-[13px]">{children}</table>
     </div>
   );
 }
@@ -133,7 +296,7 @@ export function Th({ children, className }: { children?: React.ReactNode; classN
   return (
     <th
       className={cn(
-        "border-b border-line px-3 py-2 text-left text-xs font-medium text-muted",
+        "border-b border-line bg-raised/60 px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-muted",
         className
       )}
     >
@@ -144,4 +307,77 @@ export function Th({ children, className }: { children?: React.ReactNode; classN
 
 export function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
   return <td className={cn("border-b border-line px-3 py-2 align-top", className)}>{children}</td>;
+}
+
+// ------------------------------------------------------------------- pieces
+
+export function Stat({
+  label,
+  value,
+  tone,
+  hint,
+}: {
+  label: string;
+  value: number | string;
+  tone?: Tone;
+  hint?: string;
+}) {
+  return (
+    <div title={hint}>
+      <div className={cn("nums text-[19px] leading-tight", tone && TONES[tone].text)}>{value}</div>
+      <div className="mt-0.5 text-[11px] text-muted">{label}</div>
+    </div>
+  );
+}
+
+/**
+ * Empty states carry the next action.
+ *
+ * An empty screen that only says "nothing here" makes you go and ask someone
+ * what to do. Every one of these says what the screen is for and gives the
+ * exact step that fills it.
+ */
+export function Empty({
+  title,
+  hint,
+  action,
+  command,
+}: {
+  title: string;
+  hint?: string;
+  action?: React.ReactNode;
+  command?: string;
+}) {
+  return (
+    <Card className="px-6 py-12 text-center">
+      <p className="text-sm font-medium">{title}</p>
+      {hint && <p className="mx-auto mt-1.5 max-w-md text-[13px] leading-relaxed text-muted">{hint}</p>}
+      {command && (
+        <code className="mx-auto mt-3 block w-fit rounded-sm bg-sunken px-2.5 py-1.5 font-mono text-xs text-muted">
+          {command}
+        </code>
+      )}
+      {action && <div className="mt-4 flex justify-center">{action}</div>}
+    </Card>
+  );
+}
+
+export function formatWhen(iso: string | null): string {
+  if (!iso) return "-";
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function timeAgo(iso: string | null): string {
+  if (!iso) return "never";
+  const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
 }

@@ -2,10 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
-import { approveDrafts, updateDraft } from "@/lib/enroll";
+import { approveDrafts, dryRender, enrollContacts, previewEnrollment, updateDraft } from "@/lib/enroll";
+import { selectContacts } from "@/lib/enroll/select";
 import { stopEnrollment } from "@/lib/worker/claim";
-import { setMailboxStatus } from "@/lib/campaign";
+import { createCampaign, setCampaignStatus, setMailboxStatus, upsertStep } from "@/lib/campaign";
 import { addSuppression } from "@/lib/suppressions";
+import { runSendTick } from "@/lib/worker/send-tick";
+import { pollAllMailboxes } from "@/lib/worker/poll-mailbox";
+import { sweepOrphans } from "@/lib/worker/claim";
+import { withLock, LockHeldError } from "@/lib/worker/lock";
+import { resolve } from "node:path";
 
 /**
  * Server actions for the dashboard.
@@ -15,6 +21,47 @@ import { addSuppression } from "@/lib/suppressions";
  * person has to make: approve a draft, resolve an unknown outcome, stop a
  * sequence, pause a mailbox.
  */
+
+/**
+ * Run one worker pass from the interface.
+ *
+ * The same code path the scheduled job uses, lock included, so pressing this
+ * while launchd happens to be mid-run is safe: the second one reports that
+ * the first holds the lock rather than sending anything twice.
+ */
+export async function runWorkerNow() {
+  const lockPath = resolve(process.cwd(), ".worker.lock");
+
+  try {
+    return await withLock(lockPath, async () => {
+      const db = getDb();
+      sweepOrphans(db);
+
+      const send = await runSendTick(db, { limit: 5 });
+      const polls = await pollAllMailboxes(db);
+
+      revalidatePath("/");
+      revalidatePath("/queue");
+      revalidatePath("/inbox");
+
+      return {
+        live: send.live,
+        claimed: send.claimed,
+        sent: send.sent,
+        uncertain: send.uncertain,
+        replies: polls.reduce((total, poll) => total + poll.replies, 0),
+        bounces: polls.reduce((total, poll) => total + poll.bounces, 0),
+      };
+    });
+  } catch (error) {
+    if (error instanceof LockHeldError) {
+      throw new Error("The scheduled worker is already running. Try again in a moment.", {
+        cause: error,
+      });
+    }
+    throw error;
+  }
+}
 
 export async function approveMessages(messageIds: number[]) {
   const result = approveDrafts(getDb(), messageIds);
@@ -119,3 +166,238 @@ export async function clearHold(prospectId: number) {
 }
 
 
+
+// ---------------------------------------------------------------- campaigns
+
+/**
+ * Everything a campaign needs to exist, in one call.
+ *
+ * A campaign with no step 1 can never send, so creating one seeds a step
+ * rather than leaving a half-built thing behind for someone to discover later.
+ */
+export async function createCampaignAction(input: {
+  mailboxId: number;
+  name: string;
+  description?: string;
+  windowStart: string;
+  windowEnd: string;
+  sendDays: number[];
+  newPerDay: number;
+  subject: string;
+  body: string;
+  footer?: string;
+}) {
+  const db = getDb();
+
+  const campaignId = createCampaign(db, {
+    mailboxId: input.mailboxId,
+    name: input.name,
+    description: input.description || null,
+    windowStart: input.windowStart,
+    windowEnd: input.windowEnd,
+    sendDays: input.sendDays,
+    newPerDay: input.newPerDay,
+    footerTemplate: input.footer || null,
+  });
+
+  upsertStep(db, {
+    campaignId,
+    stepNumber: 1,
+    subjectTemplate: input.subject,
+    bodyTemplate: input.body,
+    delayDays: 0,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/campaigns");
+  return { campaignId };
+}
+
+export async function saveStepAction(input: {
+  campaignId: number;
+  stepNumber: number;
+  subject: string;
+  body: string;
+  delayDays: number;
+  sameThread: boolean;
+}) {
+  upsertStep(getDb(), {
+    campaignId: input.campaignId,
+    stepNumber: input.stepNumber,
+    subjectTemplate: input.subject,
+    bodyTemplate: input.body,
+    delayDays: input.delayDays,
+    sameThread: input.sameThread,
+  });
+
+  revalidatePath(`/campaigns/${input.campaignId}`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Remove a step.
+ *
+ * Refused once it has sent anything, because the sent messages reference it
+ * and a follow-up chain with a hole in it is worse than one that is too long.
+ */
+export async function deleteStepAction(campaignId: number, stepNumber: number) {
+  const db = getDb();
+
+  const sent = db
+    .prepare(
+      `select count(*) as n from messages msg join enrollments e on e.id = msg.enrollment_id
+        where e.campaign_id = ? and msg.step_number = ? and msg.status = 'sent'`
+    )
+    .get(campaignId, stepNumber) as { n: number };
+
+  if (sent.n > 0) {
+    throw new Error(
+      `Step ${stepNumber} has already been sent ${sent.n} time${sent.n === 1 ? "" : "s"}, so it cannot be removed.`
+    );
+  }
+
+  db.prepare("delete from sequence_steps where campaign_id = ? and step_number = ?").run(
+    campaignId,
+    stepNumber
+  );
+
+  revalidatePath(`/campaigns/${campaignId}`);
+  return { ok: true };
+}
+
+export async function updateCampaignAction(input: {
+  campaignId: number;
+  name: string;
+  description?: string;
+  windowStart: string;
+  windowEnd: string;
+  sendDays: number[];
+  newPerDay: number;
+  footer?: string;
+}) {
+  getDb()
+    .prepare(
+      `update campaigns
+          set name = ?, description = ?, window_start = ?, window_end = ?,
+              send_days = ?, new_per_day = ?, footer_template = ?
+        where id = ?`
+    )
+    .run(
+      input.name,
+      input.description || null,
+      input.windowStart,
+      input.windowEnd,
+      JSON.stringify(input.sendDays),
+      input.newPerDay,
+      input.footer || null,
+      input.campaignId
+    );
+
+  revalidatePath(`/campaigns/${input.campaignId}`);
+  revalidatePath("/campaigns");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function setCampaignState(
+  campaignId: number,
+  status: "draft" | "active" | "paused" | "archived"
+) {
+  setCampaignStatus(getDb(), campaignId, status);
+  revalidatePath(`/campaigns/${campaignId}`);
+  revalidatePath("/campaigns");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Who a filter would enrol, and who it would skip, without writing anything.
+ *
+ * Every enrollment goes through this first. Enrolling is the one action here
+ * that commits to emailing real people, so it is never a single click from a
+ * text box: the list of companies and the reasons for each exclusion are shown
+ * and confirmed before anything is stored.
+ */
+export async function previewEnrollAction(
+  campaignId: number,
+  filter: { match?: string; exclude?: string; grade?: string; limit?: number }
+) {
+  const db = getDb();
+  const selection = selectContacts(db, filter);
+
+  if (selection.error) {
+    return {
+      error: selection.error,
+      considered: 0,
+      matched: [] as { company: string; email: string; excerpt: string }[],
+      eligible: 0,
+      ineligible: [] as { company: string; reason: string }[],
+      blocked: [] as { company: string; reason: string }[],
+      sample: null as { company: string; subject: string; body: string } | null,
+    };
+  }
+
+  const ids = selection.contacts.map((contact) => contact.contactId);
+  const preview = previewEnrollment(db, campaignId, ids);
+  const render = dryRender(db, campaignId, preview.eligible, 1);
+  const first = render.rendered[0];
+
+  return {
+    error: null,
+    considered: selection.considered,
+    matched: selection.contacts.slice(0, 200).map((contact) => ({
+      company: contact.company,
+      email: contact.email,
+      excerpt: contact.excerpt,
+    })),
+    eligible: render.rendered.length,
+    ineligible: preview.ineligible.map((row) => ({
+      company: row.company,
+      reason: row.reason,
+    })),
+    blocked: [
+      ...render.blocked.map((row) => ({
+        company: row.company,
+        reason: row.findings
+          .filter((finding) => finding.severity === "block")
+          .map((finding) => finding.message)
+          .join(" "),
+      })),
+      ...render.failed.map((row) => ({
+        company: row.company,
+        reason: `Nothing to fill ${row.missing.map((field) => `{{${field}}}`).join(", ")}.`,
+      })),
+    ],
+    sample: first
+      ? { company: first.company, subject: first.subject, body: first.body }
+      : null,
+  };
+}
+
+/** Enrol the contacts a filter selects. Drafts land in the review queue. */
+export async function enrollAction(
+  campaignId: number,
+  filter: { match?: string; exclude?: string; grade?: string; limit?: number }
+) {
+  const db = getDb();
+  const selection = selectContacts(db, filter);
+  if (selection.error) throw new Error(selection.error);
+
+  const result = enrollContacts(db, campaignId, {
+    contactIds: selection.contacts.map((contact) => contact.contactId),
+  });
+
+  revalidatePath(`/campaigns/${campaignId}`);
+  revalidatePath("/queue");
+  revalidatePath("/");
+
+  return {
+    enrolled: result.enrolled,
+    drafted: result.drafted,
+    scheduled: result.scheduled,
+    skipped: result.skipped.length,
+    firstSendAt: result.firstSendAt ? result.firstSendAt.toISOString() : null,
+    lastSendAt: result.lastSendAt ? result.lastSendAt.toISOString() : null,
+  };
+}

@@ -24,6 +24,7 @@ import {
   upsertStep,
 } from "@/lib/campaign";
 import { dryRender, enrollContacts, previewEnrollment } from "@/lib/enroll";
+import { selectContacts } from "@/lib/enroll/select";
 import { listCampaigns } from "@/lib/queries";
 
 function flag(args: string[], name: string): string | undefined {
@@ -34,14 +35,9 @@ function flag(args: string[], name: string): string | undefined {
 /**
  * Select contacts by what the research says about them.
  *
- * A segment worth its own campaign is usually a state rather than a category:
- * "their processor is down right now" cuts across every vertical. That state
- * only exists in the free text of the research columns, so this matches a
- * regex against all of it.
- *
- * `--not-match` matters as much as `--match`. Searching for "unavailable"
- * finds the stores that are down and also the one announcing it is "processing
- * payments again", which is the opposite situation.
+ * The rules live in `lib/enroll/select.ts` so the dashboard and this script
+ * pick the same people. Returns null when no filter was given, which means
+ * "every eligible contact" rather than "none".
  */
 function contactsMatching(
   match: string | undefined,
@@ -51,47 +47,19 @@ function contactsMatching(
 ): { ids: number[]; rows: { company: string; excerpt: string }[] } | null {
   if (!match && !notMatch && !grade && !limit) return null;
 
-  const include = match ? new RegExp(match, "i") : null;
-  const exclude = notMatch ? new RegExp(notMatch, "i") : null;
-
-  const rows = getDb()
-    .prepare(
-      `select c.id, p.company, p.vertical, p.custom
-         from contacts c join prospects p on p.id = c.prospect_id
-        where c.channel = 'email' and (? is null or p.grade = ?)
-        order by case p.grade when 'A' then 0 when 'B' then 1 when 'C' then 2 else 3 end,
-                 p.company`
-    )
-    .all(grade ?? null, grade ?? null) as {
-    id: number;
-    company: string;
-    vertical: string | null;
-    custom: string;
-  }[];
-
-  const ids: number[] = [];
-  const matched: { company: string; excerpt: string }[] = [];
-
-  for (const row of rows) {
-    const research = [row.vertical, ...Object.values(JSON.parse(row.custom || "{}"))]
-      .filter(Boolean)
-      .join(" | ");
-
-    if (include && !include.test(research)) continue;
-    if (exclude && exclude.test(research)) continue;
-    if (limit && ids.length >= limit) break;
-
-    ids.push(row.id);
-
-    const hit = include?.exec(research);
-    const at = hit?.index ?? 0;
-    matched.push({
-      company: row.company,
-      excerpt: research.slice(Math.max(0, at - 30), at + 70).replace(/\s+/g, " ").trim(),
-    });
+  const selection = selectContacts(getDb(), { match, exclude: notMatch, grade, limit });
+  if (selection.error) {
+    console.error(`Bad pattern: ${selection.error}`);
+    process.exit(1);
   }
 
-  return { ids, rows: matched };
+  return {
+    ids: selection.contacts.map((contact) => contact.contactId),
+    rows: selection.contacts.map((contact) => ({
+      company: contact.company,
+      excerpt: contact.excerpt,
+    })),
+  };
 }
 
 function campaignIdFor(name: string): number {
