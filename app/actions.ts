@@ -13,7 +13,13 @@ import {
 } from "@/lib/enroll";
 import { selectContacts } from "@/lib/enroll/select";
 import { stopEnrollment } from "@/lib/worker/claim";
-import { createCampaign, setCampaignStatus, setMailboxStatus, upsertStep } from "@/lib/campaign";
+import {
+  createCampaign,
+  setCampaignStatus,
+  setMailboxStatus,
+  updateCampaign,
+  upsertStep,
+} from "@/lib/campaign";
 import { addSuppression } from "@/lib/suppressions";
 import { runSendTick } from "@/lib/worker/send-tick";
 import { pollAllMailboxes } from "@/lib/worker/poll-mailbox";
@@ -299,23 +305,15 @@ export async function updateCampaignAction(input: {
   newPerDay: number;
   footer?: string;
 }) {
-  getDb()
-    .prepare(
-      `update campaigns
-          set name = ?, description = ?, window_start = ?, window_end = ?,
-              send_days = ?, new_per_day = ?, footer_template = ?
-        where id = ?`
-    )
-    .run(
-      input.name,
-      input.description || null,
-      input.windowStart,
-      input.windowEnd,
-      JSON.stringify(input.sendDays),
-      input.newPerDay,
-      input.footer || null,
-      input.campaignId
-    );
+  updateCampaign(getDb(), input.campaignId, {
+    name: input.name,
+    description: input.description || null,
+    windowStart: input.windowStart,
+    windowEnd: input.windowEnd,
+    sendDays: input.sendDays,
+    newPerDay: input.newPerDay,
+    footerTemplate: input.footer || null,
+  });
 
   revalidatePath(`/campaigns/${input.campaignId}`);
   revalidatePath("/campaigns");

@@ -255,6 +255,76 @@ export function createCampaign(db: Db, input: CreateCampaignInput): number {
   return Number(result.lastInsertRowid);
 }
 
+export interface UpdateCampaignInput {
+  name?: string;
+  description?: string | null;
+  timezone?: string;
+  windowStart?: string;
+  windowEnd?: string;
+  sendDays?: number[];
+  newPerDay?: number;
+  footerTemplate?: string | null;
+}
+
+/**
+ * Change a campaign's settings, window included.
+ *
+ * The new window is validated against the same rules the slotter uses, before
+ * anything is written. The table's CHECK only compares the two time strings,
+ * so a malformed time or an empty send_days array would otherwise be stored
+ * happily and then throw at slot time, long after the form said it saved.
+ *
+ * Remember that `window_end` is effectively exclusive: `pickTime` stops a
+ * minute short of it and `campaignIsOpen` uses `now < close`. A window ending
+ * at 16:00 can never produce a 16:00 send.
+ *
+ * Omitted fields are left alone. `description` and `footerTemplate` accept an
+ * explicit null to clear them, which is why they are checked for `undefined`
+ * rather than falsiness.
+ */
+export function updateCampaign(
+  db: Db,
+  campaignId: number,
+  input: UpdateCampaignInput
+): CampaignRow {
+  const current = getCampaign(db, campaignId);
+
+  const next: CampaignRow = {
+    ...current,
+    name: input.name ?? current.name,
+    description: input.description === undefined ? current.description : input.description,
+    timezone: input.timezone ?? current.timezone,
+    window_start: input.windowStart ?? current.window_start,
+    window_end: input.windowEnd ?? current.window_end,
+    send_days: input.sendDays ? JSON.stringify(input.sendDays) : current.send_days,
+    new_per_day: input.newPerDay ?? current.new_per_day,
+    footer_template:
+      input.footerTemplate === undefined ? current.footer_template : input.footerTemplate,
+  };
+
+  // Throws on a bad window before a single column changes.
+  windowOf(next);
+
+  db.prepare(
+    `update campaigns
+        set name = ?, description = ?, timezone = ?, window_start = ?, window_end = ?,
+            send_days = ?, new_per_day = ?, footer_template = ?
+      where id = ?`
+  ).run(
+    next.name,
+    next.description,
+    next.timezone,
+    next.window_start,
+    next.window_end,
+    next.send_days,
+    next.new_per_day,
+    next.footer_template,
+    campaignId
+  );
+
+  return next;
+}
+
 export interface UpsertStepInput {
   campaignId: number;
   stepNumber: number;
