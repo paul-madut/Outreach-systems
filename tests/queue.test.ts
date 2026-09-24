@@ -50,6 +50,7 @@ describe("schema", () => {
       "placement_results",
       "placement_tests",
       "prospects",
+      "reply_suggestions",
       "seed_inboxes",
       "sequence_steps",
       "suppressions",

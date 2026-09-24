@@ -44,6 +44,7 @@ better-sqlite3 is pinned to v11 because v13 requires Node 22 and this machine ru
 | `lib/db/` | `schema.sql` and the connection helper. The schema is idempotent and applied on every open, which is the entire migration story. |
 | `lib/template/` | Merge-field rendering, context building, the content linter. Pure. |
 | `lib/schedule/` | Send-time slotting and timezone helpers. Pure, with an injectable RNG. |
+| `lib/reply/` | Drafting replies to inbound mail. Context assembly and the prompt are pure; only `suggest.ts` calls out. |
 | `lib/mail/` | SMTP and IMAP, Keychain, inbound classification, DSN parsing, reply matching, recipient MX lookup, placement testing. The classify, match and placement-parsing halves are pure. |
 | `lib/import/` | CSV parsing, column mapping, value normalisation, commit. |
 | `lib/worker/` | The lock, the claim, the send tick, the mailbox poller. |
@@ -106,6 +107,13 @@ Without the distinction, `{{#first_name}}Hi {{first_name}},{{/first_name}}{{^fir
 `lib/worker/notify-inbound.ts`. Polling writes in a transaction and a network call has no business in one.
 Slack is sent first and `inbound_messages.notified_at` is set second: dying between the two costs a duplicate ping, dying in the other order costs a reply nobody hears about.
 A Slack outage is therefore free - the row keeps its null `notified_at` and the next run retries it.
+
+**A drafted reply is a starting point, never a send.**
+`lib/reply/`. It is stored, shown in an editable box and copied by hand; nothing in the tool sends a reply on its own, and that applies with more force to text a model wrote.
+Every draft goes through `lintMessage`, the same content check as an outgoing message, because an em dash from a model is exactly as unwelcome as one from a template.
+
+**A reroll keeps the drafts it replaced.**
+`reply_suggestions` is append-only, one row per attempt. The rejected drafts go into the next prompt, or a reroll returns the same reply with the words moved around, and the earlier attempt stays reachable rather than being regenerated and hoped for.
 
 **A mailbox pausing itself is announced too, and it matters more than a reply.**
 `lib/worker/notify-mailbox.ts`, keyed off `mailboxes.pause_notified_at` rather than off the tick's result, so a crashed worker or a Slack outage still delivers it later.

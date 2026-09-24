@@ -466,3 +466,25 @@ create table if not exists placement_results (
 
   unique (test_id, seed_id)
 );
+
+-- --------------------------------------------------- suggested replies
+
+-- A draft reply written for one inbound message. Kept rather than replaced so
+-- a reroll can be told what it already produced, and so a suggestion that read
+-- better two attempts ago is not lost.
+create table if not exists reply_suggestions (
+  id          integer primary key,
+  inbound_id  integer not null references inbound_messages (id) on delete cascade,
+
+  -- 1 for the first attempt, climbing with each reroll.
+  attempt     integer not null check (attempt >= 1),
+  body        text    not null,
+  model       text    not null,
+
+  created_at  text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+
+  unique (inbound_id, attempt)
+);
+
+create index if not exists reply_suggestions_inbound_idx
+  on reply_suggestions (inbound_id, attempt desc);

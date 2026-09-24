@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { InboxRow } from "@/lib/queries";
 import { markInboundHandled } from "../actions";
 import { STATUS, Card, StatusBadge, buttonClass, formatWhen } from "../ui";
+import { ReplyDraft } from "./reply-draft";
 import { cn } from "@/lib/utils";
 
 /**
@@ -19,6 +20,9 @@ import { cn } from "@/lib/utils";
  * clear things without reading them.
  */
 const NEEDS_A_PERSON = new Set(["reply", "unsubscribe", "unmatched"]);
+
+/** Where drafting a reply makes sense. An opt-out gets silence, not a reply. */
+const WORTH_REPLYING_TO = new Set(["reply", "unmatched"]);
 
 export function InboxCard({ row, index }: { row: InboxRow; index: number }) {
   const [handled, setHandled] = useState(row.handled === 1);
@@ -88,6 +92,16 @@ export function InboxCard({ row, index }: { row: InboxRow; index: number }) {
             </button>
           )}
         </div>
+
+        {/*
+          Only where a person is actually going to write back. A bounce needs
+          a suppression, not a reply, and an auto-reply needs nothing at all.
+        */}
+        {WORTH_REPLYING_TO.has(row.classification) && (
+          <div className="mt-2 flex">
+            <ReplyDraft inboundId={row.id} />
+          </div>
+        )}
       </Card>
     </div>
   );

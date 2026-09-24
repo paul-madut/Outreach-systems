@@ -31,6 +31,7 @@ import {
 } from "@/lib/mail/placement-run";
 import { addSuppression } from "@/lib/suppressions";
 import { validateWarmup } from "@/lib/schedule/warmup";
+import { listSuggestions, suggestReply } from "@/lib/reply/suggest";
 import { runSendTick } from "@/lib/worker/send-tick";
 import { pollAllMailboxes } from "@/lib/worker/poll-mailbox";
 import { notifyInbound } from "@/lib/worker/notify-inbound";
@@ -513,4 +514,22 @@ export async function setWarmup(
   ).run(settings.startOn, settings.startCap, settings.dailyIncrement, mailboxId);
 
   revalidatePath("/settings");
+}
+
+/**
+ * Draft a reply to an inbound message, or reroll one.
+ *
+ * Each call appends an attempt rather than replacing the last, so a reroll can
+ * be told what it already produced and a draft that read better two attempts
+ * ago is still there.
+ */
+export async function suggestReplyAction(inboundId: number) {
+  const suggestion = await suggestReply(getDb(), inboundId);
+  revalidatePath("/inbox");
+  return suggestion;
+}
+
+/** Every draft written for a message, so the page can show them on load. */
+export async function listSuggestionsAction(inboundId: number) {
+  return listSuggestions(getDb(), inboundId);
 }
