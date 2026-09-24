@@ -125,6 +125,8 @@ export interface InboxRow {
   matchMethod: string | null;
   company: string | null;
   handled: number;
+  /** 1 when a reply has already gone to this message. */
+  replySent: number;
 }
 
 export function listInbox(
@@ -138,6 +140,8 @@ export function listInbox(
       `select i.id, i.classification, i.classification_reason as reason,
               i.from_email as fromEmail, i.subject, i.received_at as receivedAt,
               i.snippet, i.match_method as matchMethod, i.handled,
+              (select count(*) from sent_replies r
+                where r.inbound_id = i.id and r.status in ('sent', 'uncertain')) as replySent,
               p.company
          from inbound_messages i
          left join messages m on m.id = i.matched_message_id

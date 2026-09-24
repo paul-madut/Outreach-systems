@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Db } from "@/lib/db";
-import { lintMessage, type LintFinding } from "@/lib/template/lint";
+import type { LintFinding } from "@/lib/template/lint";
+import { lintReplyBody } from "./lint";
 import { buildReplyContext } from "./context";
 import { buildPrompt, SYSTEM_PROMPT } from "./prompt";
 
@@ -109,11 +110,7 @@ export async function suggestReply(db: Db, inboundId: number): Promise<Suggestio
 
   // Run the draft through the same linter as any outgoing message. An em dash
   // from a model is exactly as unwelcome as one from a template.
-  // A reply carries no subject of its own, so the subject rules do not apply
-  // and an empty-subject finding is noise reported as a blocker.
-  const findings = lintMessage("", body).filter((finding) => finding.rule !== "empty-subject");
-
-  return { attempt, body, model, findings };
+  return { attempt, body, model, findings: lintReplyBody(body) };
 }
 
 /**

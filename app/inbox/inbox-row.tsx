@@ -99,7 +99,11 @@ export function InboxCard({ row, index }: { row: InboxRow; index: number }) {
         */}
         {WORTH_REPLYING_TO.has(row.classification) && (
           <div className="mt-2 flex">
-            <ReplyDraft inboundId={row.id} />
+            <ReplyDraft
+              inboundId={row.id}
+              toEmail={row.fromEmail}
+              alreadySent={row.replySent === 1}
+            />
           </div>
         )}
       </Card>

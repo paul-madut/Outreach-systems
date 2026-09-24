@@ -108,9 +108,19 @@ Without the distinction, `{{#first_name}}Hi {{first_name}},{{/first_name}}{{^fir
 Slack is sent first and `inbound_messages.notified_at` is set second: dying between the two costs a duplicate ping, dying in the other order costs a reply nobody hears about.
 A Slack outage is therefore free - the row keeps its null `notified_at` and the next run retries it.
 
-**A drafted reply is a starting point, never a send.**
-`lib/reply/`. It is stored, shown in an editable box and copied by hand; nothing in the tool sends a reply on its own, and that applies with more force to text a model wrote.
-Every draft goes through `lintMessage`, the same content check as an outgoing message, because an em dash from a model is exactly as unwelcome as one from a template.
+**A drafted reply is never sent without a person pressing send twice.**
+`lib/reply/`. The draft is editable, the Send button asks for confirmation naming the recipient, and nothing in the tool replies on its own - which matters more for text a model wrote than for anything else here.
+
+**The refusals in `blockingReason` are the point of `lib/reply/send.ts`.**
+No send without `OUTREACH_LIVE`, none to a suppressed address however well meant, none that fails the content linter, none from a paused mailbox, and none where a reply is already sent or in flight.
+The `sent_replies` row is written *before* the send and marked after, so a process that dies mid-flight leaves evidence rather than an invitation to send again.
+
+**A reply is not a `messages` row.**
+It belongs to no sequence and has no step, and putting it in that table would place it in front of the follow-up logic.
+It answers from the mailbox that started the thread, threading on the inbound message's own Message-ID.
+
+**Reply linting drops the subject rules.**
+`lintReplyBody`. A reply carries no subject of its own, so `empty-subject` is noise reported as a blocker. Shared between drafting and sending because the filter was written twice and forgotten once.
 
 **A reroll keeps the drafts it replaced.**
 `reply_suggestions` is append-only, one row per attempt. The rejected drafts go into the next prompt, or a reroll returns the same reply with the words moved around, and the earlier attempt stays reachable rather than being regenerated and hoped for.

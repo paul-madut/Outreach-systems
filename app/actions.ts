@@ -32,6 +32,7 @@ import {
 import { addSuppression } from "@/lib/suppressions";
 import { validateWarmup } from "@/lib/schedule/warmup";
 import { listSuggestions, suggestReply } from "@/lib/reply/suggest";
+import { blockingReason, sendReply } from "@/lib/reply/send";
 import { runSendTick } from "@/lib/worker/send-tick";
 import { pollAllMailboxes } from "@/lib/worker/poll-mailbox";
 import { notifyInbound } from "@/lib/worker/notify-inbound";
@@ -532,4 +533,33 @@ export async function suggestReplyAction(inboundId: number) {
 /** Every draft written for a message, so the page can show them on load. */
 export async function listSuggestionsAction(inboundId: number) {
   return listSuggestions(getDb(), inboundId);
+}
+
+/**
+ * Send a drafted reply.
+ *
+ * The only place in the interface that puts a message in front of a real
+ * person without the worker's pacing, so every refusal is checked here rather
+ * than trusted to the caller.
+ */
+export async function sendReplyAction(inboundId: number, body: string) {
+  const result = await sendReply(getDb(), inboundId, body);
+
+  revalidatePath("/inbox");
+  revalidatePath("/");
+  return result;
+}
+
+/** Why a reply cannot be sent yet, or null when it can. Shown before trying. */
+export async function replyBlockedReason(inboundId: number, body: string) {
+  const db = getDb();
+  const inbound = db
+    .prepare(
+      `select i.id, i.from_email, i.classification
+         from inbound_messages i where i.id = ?`
+    )
+    .get(inboundId) as { id: number; from_email: string; classification: string } | undefined;
+
+  if (!inbound) return "That message no longer exists.";
+  return blockingReason(db, inbound as never, body);
 }

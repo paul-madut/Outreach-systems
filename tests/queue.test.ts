@@ -52,6 +52,7 @@ describe("schema", () => {
       "prospects",
       "reply_suggestions",
       "seed_inboxes",
+      "sent_replies",
       "sequence_steps",
       "suppressions",
     ]);

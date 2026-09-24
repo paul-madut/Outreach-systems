@@ -488,3 +488,39 @@ create table if not exists reply_suggestions (
 
 create index if not exists reply_suggestions_inbound_idx
   on reply_suggestions (inbound_id, attempt desc);
+
+-- --------------------------------------------------- replies Paul sent back
+
+-- A reply sent by hand from the Inbox. Deliberately not a `messages` row: it
+-- belongs to no sequence, has no step, and letting it into that table would
+-- put it in front of the follow-up logic.
+--
+-- The row is written BEFORE the send and marked after, so a process that dies
+-- mid-send leaves evidence rather than an invitation to send again.
+create table if not exists sent_replies (
+  id                integer primary key,
+  inbound_id        integer not null references inbound_messages (id) on delete cascade,
+  mailbox_id        integer not null references mailboxes (id) on delete restrict,
+
+  to_email          text not null,
+  subject           text not null,
+  body              text not null,
+
+  message_id        text not null unique,
+  in_reply_to       text,
+  references_header text,
+
+  status            text not null default 'sending'
+                      check (status in ('sending', 'sent', 'failed', 'uncertain')),
+  sent_at           text,
+  smtp_response     text,
+  error             text,
+
+  created_at        text not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- One reply per inbound message. A second one is a deliberate act and needs a
+-- deliberate row, not an accidental double click.
+create unique index if not exists sent_replies_one_per_inbound
+  on sent_replies (inbound_id)
+  where status in ('sending', 'sent', 'uncertain');
