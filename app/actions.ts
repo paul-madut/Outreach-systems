@@ -19,10 +19,22 @@ import {
   setMailboxStatus,
   updateCampaign,
   upsertStep,
+  type MailboxRow,
 } from "@/lib/campaign";
+import { buildTestMessage } from "@/lib/mail/placement-message";
+import {
+  checkPlacementTest,
+  closePlacementTest,
+  placementReport,
+  sendPlacementTest,
+  testCount,
+} from "@/lib/mail/placement-run";
 import { addSuppression } from "@/lib/suppressions";
+import { validateWarmup } from "@/lib/schedule/warmup";
 import { runSendTick } from "@/lib/worker/send-tick";
 import { pollAllMailboxes } from "@/lib/worker/poll-mailbox";
+import { notifyInbound } from "@/lib/worker/notify-inbound";
+import { notifyMailboxPauses } from "@/lib/worker/notify-mailbox";
 import { sweepOrphans } from "@/lib/worker/claim";
 import { withLock, LockHeldError } from "@/lib/worker/lock";
 import { resolve } from "node:path";
@@ -53,6 +65,8 @@ export async function runWorkerNow() {
 
       const send = await runSendTick(db, { limit: 5 });
       const polls = await pollAllMailboxes(db);
+      const alerts = await notifyInbound(db);
+      const paused = await notifyMailboxPauses(db);
 
       revalidatePath("/");
       revalidatePath("/queue");
@@ -64,6 +78,7 @@ export async function runWorkerNow() {
         sent: send.sent,
         uncertain: send.uncertain,
         replies: polls.reduce((total, poll) => total + poll.replies, 0),
+        notified: alerts.sent + paused.sent,
         bounces: polls.reduce((total, poll) => total + poll.bounces, 0),
       };
     });
@@ -422,4 +437,80 @@ export async function enrollAction(
     firstSendAt: result.firstSendAt ? result.firstSendAt.toISOString() : null,
     lastSendAt: result.lastSendAt ? result.lastSendAt.toISOString() : null,
   };
+}
+
+/**
+ * Placement testing.
+ *
+ * Sending is split from reading because they happen on different timescales:
+ * the send takes a second, and the message can take minutes to appear. So a
+ * start returns as soon as SMTP accepts, and the page checks back.
+ *
+ * These send real mail whether or not OUTREACH_LIVE is set. That flag exists
+ * to keep drafts away from prospects, and a placement test only ever writes
+ * to seed inboxes Paul owns. Gating it would make the check unavailable in
+ * exactly the state it is for: before the first campaign goes out.
+ */
+export async function startPlacementTest(mailboxId: number, campaignId: number, step = 1) {
+  const db = getDb();
+
+  const mailbox = db
+    .prepare("select * from mailboxes where id = ?")
+    .get(mailboxId) as MailboxRow | undefined;
+  if (!mailbox) throw new Error("That mailbox no longer exists.");
+
+  const message = buildTestMessage(db, campaignId, step, mailbox, testCount(db, mailboxId));
+  const testId = await sendPlacementTest(db, {
+    mailboxId,
+    subject: message.subject,
+    body: message.body,
+  });
+
+  revalidatePath("/settings");
+  return { testId, subject: message.subject, renderedFor: message.renderedFor };
+}
+
+/** Look once for anything still in flight. Safe to call on a finished test. */
+export async function refreshPlacementTest(testId: number) {
+  const db = getDb();
+  const outstanding = await checkPlacementTest(db, testId);
+
+  revalidatePath("/settings");
+  return { outstanding, report: placementReport(db, testId) };
+}
+
+/** Stop waiting. Anything that never arrived is recorded as missing. */
+export async function closePlacementTestAction(testId: number) {
+  closePlacementTest(getDb(), testId);
+  revalidatePath("/settings");
+}
+
+/**
+ * Set or clear a mailbox's ramp.
+ *
+ * The ramp is the one safety control that has only ever existed on the command
+ * line, which meant the number the dashboard displayed was one nobody could
+ * change from there.
+ */
+export async function setWarmup(
+  mailboxId: number,
+  settings: { startOn: string; startCap: number; dailyIncrement: number } | null
+) {
+  const db = getDb();
+
+  if (settings === null) {
+    db.prepare("update mailboxes set warmup_started_on = null where id = ?").run(mailboxId);
+    revalidatePath("/settings");
+    return;
+  }
+
+  validateWarmup(settings);
+
+  db.prepare(
+    `update mailboxes
+        set warmup_started_on = ?, warmup_start_cap = ?, warmup_daily_increment = ?
+      where id = ?`
+  ).run(settings.startOn, settings.startCap, settings.dailyIncrement, mailboxId);
+
+  revalidatePath("/settings");
 }

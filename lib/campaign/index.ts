@@ -366,15 +366,102 @@ export function setCampaignStatus(
   db.prepare("update campaigns set status = ? where id = ?").run(status, campaignId);
 }
 
+/**
+ * The mailbox that started this enrollment's thread.
+ *
+ * A follow-up carries In-Reply-To pointing at the first message, so it has to
+ * leave from the address that sent it. Without this, moving a campaign to a
+ * new mailbox would continue conversations already in progress from a
+ * different sender: the thread splits in the recipient's client and the reply
+ * reads as coming from a stranger.
+ *
+ * Null when nothing has gone out yet, which means the campaign's current
+ * mailbox is the right one to use.
+ */
+export function threadMailboxId(db: Db, enrollmentId: number): number | null {
+  const row = db
+    .prepare(
+      `select mailbox_id from messages
+        where enrollment_id = ? and status in ('sent', 'uncertain')
+        order by step_number limit 1`
+    )
+    .get(enrollmentId) as { mailbox_id: number } | undefined;
+
+  return row?.mailbox_id ?? null;
+}
+
+export interface MoveCampaignResult {
+  /** Unsent messages repointed at the new mailbox. */
+  moved: number;
+  /** Unsent messages left behind because their thread belongs elsewhere. */
+  keptOnThread: number;
+}
+
+/**
+ * Send a campaign from a different mailbox.
+ *
+ * `messages.mailbox_id` is a snapshot taken when the row is rendered, so
+ * changing the campaign alone would leave everything already queued going out
+ * from the old address. Queued mail moves with the campaign, with one
+ * exception: anything belonging to a thread that has already started stays
+ * where it is, for the reason in `threadMailboxId`.
+ *
+ * Sent, failed and cancelled rows are never touched. They are a record of what
+ * actually happened and rewriting them would make the log lie.
+ */
+export function moveCampaign(db: Db, campaignId: number, mailboxId: number): MoveCampaignResult {
+  getMailbox(db, mailboxId);
+
+  return db.transaction((): MoveCampaignResult => {
+    db.prepare("update campaigns set mailbox_id = ? where id = ?").run(mailboxId, campaignId);
+
+    const moved = db
+      .prepare(
+        `update messages set mailbox_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+          where status in ('draft', 'scheduled')
+            and mailbox_id <> ?
+            and enrollment_id in (select id from enrollments where campaign_id = ?)
+            and not exists (
+              select 1 from messages prior
+               where prior.enrollment_id = messages.enrollment_id
+                 and prior.status in ('sent', 'uncertain')
+            )`
+      )
+      .run(mailboxId, mailboxId, campaignId).changes;
+
+    const keptOnThread = (
+      db
+        .prepare(
+          `select count(*) as n from messages m
+            where m.status in ('draft', 'scheduled')
+              and m.mailbox_id <> ?
+              and m.enrollment_id in (select id from enrollments where campaign_id = ?)`
+        )
+        .get(mailboxId, campaignId) as { n: number }
+    ).n;
+
+    return { moved, keptOnThread };
+  })();
+}
+
+/** Rename a mailbox. The label is only ever an identifier for a person. */
+export function renameMailbox(db: Db, mailboxId: number, label: string): void {
+  db.prepare("update mailboxes set label = ? where id = ?").run(label, mailboxId);
+}
+
 export function setMailboxStatus(
   db: Db,
   mailboxId: number,
   status: "active" | "paused" | "archived",
   reason: string | null = null
 ): void {
-  db.prepare("update mailboxes set status = ?, paused_reason = ? where id = ?").run(
-    status,
-    reason,
-    mailboxId
-  );
+  // Clearing the notification marker on the way out of a pause is what makes
+  // the next pause announce itself. Leaving it set would mean a mailbox that
+  // pauses, resumes and pauses again goes quiet the second time.
+  db.prepare(
+    `update mailboxes
+        set status = ?, paused_reason = ?,
+            pause_notified_at = case when ? = 'paused' then pause_notified_at else null end
+      where id = ?`
+  ).run(status, reason, status, mailboxId);
 }

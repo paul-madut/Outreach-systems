@@ -78,6 +78,44 @@ export function addDays(date: LocalDate, days: number): LocalDate {
   };
 }
 
+/** "2026-09-23" as a local calendar date. Rejects dates that do not exist. */
+export function parseLocalDate(value: string): LocalDate {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) {
+    throw new Error(`Invalid local date: ${value}. Expected YYYY-MM-DD.`);
+  }
+
+  const date: LocalDate = {
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+  };
+
+  // Date.UTC rolls 2026-02-30 forward to March, so a round trip catches it.
+  const roundTrip = new Date(Date.UTC(date.year, date.month - 1, date.day));
+  if (
+    roundTrip.getUTCFullYear() !== date.year ||
+    roundTrip.getUTCMonth() + 1 !== date.month ||
+    roundTrip.getUTCDate() !== date.day
+  ) {
+    throw new Error(`Invalid local date: ${value}. That day does not exist.`);
+  }
+
+  return date;
+}
+
+/**
+ * Whole days from one local date to another, negative when `to` is earlier.
+ *
+ * UTC arithmetic is safe here for the same reason it is in `addDays`: this is
+ * calendar math on bare dates, with no instant and therefore no DST to cross.
+ */
+export function daysBetween(from: LocalDate, to: LocalDate): number {
+  const a = Date.UTC(from.year, from.month - 1, from.day);
+  const b = Date.UTC(to.year, to.month - 1, to.day);
+  return Math.round((b - a) / 86_400_000);
+}
+
 export function sameLocalDate(a: LocalDate, b: LocalDate): boolean {
   return a.year === b.year && a.month === b.month && a.day === b.day;
 }

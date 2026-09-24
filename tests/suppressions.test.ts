@@ -9,6 +9,7 @@ import {
   isSuppressed,
   parseDomainList,
   seedDomainSuppressions,
+  removeSuppression,
 } from "@/lib/suppressions";
 import { createTestDb } from "./helpers/db";
 
@@ -149,5 +150,30 @@ describe.skipIf(!existsSync(EXCLUDE_LIST))("the real exclude list", () => {
 
     // A store reachable only at a Gmail address stays contactable.
     expect(isSuppressed(db, "sarmsasiastore@gmail.com")).toBe(false);
+  });
+});
+
+describe("removeSuppression", () => {
+  // NXDOMAIN is not always permanent. asicminermarket.com returned it on
+  // 2026-09-22, was auto-suppressed by check-mx, and resolved normally two
+  // days later. Without a way back one bad reading loses a prospect for good.
+  it("lets a revived domain back in", () => {
+    const db = createTestDb();
+    addSuppression(db, "domain", "asicminermarket.com", "No such domain", "mailbox check-mx");
+    expect(isSuppressed(db, "sales@asicminermarket.com")).toBe(true);
+
+    expect(removeSuppression(db, "domain", "asicminermarket.com")).toBe(true);
+    expect(isSuppressed(db, "sales@asicminermarket.com")).toBe(false);
+  });
+
+  it("reports when there was nothing to unblock", () => {
+    const db = createTestDb();
+    expect(removeSuppression(db, "domain", "never-blocked.com")).toBe(false);
+  });
+
+  it("normalises the value the same way adding does", () => {
+    const db = createTestDb();
+    addSuppression(db, "domain", "Example.COM");
+    expect(removeSuppression(db, "domain", "  EXAMPLE.com  ")).toBe(true);
   });
 });

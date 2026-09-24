@@ -16,6 +16,7 @@ import {
   seedFollowUp,
   seedMessage,
   statusOf,
+  type Seeded,
 } from "./helpers/db";
 
 let db: Db;
@@ -46,7 +47,10 @@ describe("schema", () => {
       "inbound_messages",
       "mailboxes",
       "messages",
+      "placement_results",
+      "placement_tests",
       "prospects",
+      "seed_inboxes",
       "sequence_steps",
       "suppressions",
     ]);
@@ -402,5 +406,61 @@ describe("stopEnrollment", () => {
     const seeded = seedCampaign(db);
     const { enrollmentId } = seedMessage(db, seeded, { status: "draft" });
     expect(stopEnrollment(db, enrollmentId, "stopped", "manual")).toBe(1);
+  });
+});
+
+describe("the warmup ramp gates claiming", () => {
+  /** Day 1 of a ramp that starts at 2 and climbs by 1, ceiling 100. */
+  function rampedMailbox(db: ReturnType<typeof createTestDb>, seeded: Seeded, startedOn: string) {
+    db.prepare(
+      `update mailboxes
+          set warmup_started_on = ?, warmup_start_cap = 2, warmup_daily_increment = 1
+        where id = ?`
+    ).run(startedOn, seeded.mailboxId);
+  }
+
+  it("claims only the ramped cap, not the daily cap", () => {
+    const db = createTestDb();
+    const seeded = seedCampaign(db, { dailyCap: 100, timezone: "UTC" });
+    const now = new Date("2026-09-23T12:00:00.000Z");
+    rampedMailbox(db, seeded, "2026-09-23");
+
+    for (let i = 0; i < 5; i += 1) seedMessage(db, seeded, { scheduledAt: new Date(now.getTime() - 60_000) });
+
+    const claimed = claimDueMessages(db, { limit: 10, now });
+    expect(claimed).toHaveLength(2);
+  });
+
+  it("lets more through as the ramp climbs", () => {
+    const db = createTestDb();
+    const seeded = seedCampaign(db, { dailyCap: 100, timezone: "UTC" });
+    rampedMailbox(db, seeded, "2026-09-23");
+
+    for (let i = 0; i < 10; i += 1) {
+      seedMessage(db, seeded, { scheduledAt: new Date("2026-09-23T00:00:00.000Z") });
+    }
+
+    // Day 4 of the ramp allows 5, and nothing has been sent on that day yet.
+    const claimed = claimDueMessages(db, { limit: 10, now: new Date("2026-09-26T12:00:00.000Z") });
+    expect(claimed).toHaveLength(5);
+  });
+
+  it("claims nothing before the ramp's start date", () => {
+    const db = createTestDb();
+    const seeded = seedCampaign(db, { dailyCap: 100, timezone: "UTC" });
+    rampedMailbox(db, seeded, "2026-09-30");
+    seedMessage(db, seeded, { scheduledAt: new Date("2026-09-23T00:00:00.000Z") });
+
+    const claimed = claimDueMessages(db, { limit: 10, now: new Date("2026-09-23T12:00:00.000Z") });
+    expect(claimed).toHaveLength(0);
+  });
+
+  it("leaves a mailbox with no ramp on its full cap", () => {
+    const db = createTestDb();
+    const seeded = seedCampaign(db, { dailyCap: 3, timezone: "UTC" });
+    for (let i = 0; i < 5; i += 1) seedMessage(db, seeded);
+
+    const claimed = claimDueMessages(db, { limit: 10 });
+    expect(claimed).toHaveLength(3);
   });
 });

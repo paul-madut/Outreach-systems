@@ -420,3 +420,36 @@ describe("off-topic quote warning", () => {
     expect(findings.some((f) => f.rule === "off-topic-quote")).toBe(false);
   });
 });
+
+describe("sections inside a line", () => {
+  // The greeting branch pattern. Swallowing the newline after the losing
+  // branch pulled the first paragraph up onto the greeting's line, so every
+  // personalised job outreach email went out looking like a mistake.
+  const GREETING =
+    "{{#first_name}}Hi {{first_name}},{{/first_name}}{{^first_name}}Hello,{{/first_name}}\n\nI am a Carleton student.";
+
+  it("keeps the paragraph break when the name is present", () => {
+    const result = render(GREETING, { first_name: "Vivek" });
+    expect(result.ok && result.text).toBe("Hi Vivek,\n\nI am a Carleton student.");
+  });
+
+  it("keeps the paragraph break when the name is missing", () => {
+    const result = render(GREETING, {});
+    expect(result.ok && result.text).toBe("Hello,\n\nI am a Carleton student.");
+  });
+
+  it("still drops the whole line for a section that owns one", () => {
+    const result = render("One\n{{#quote}}\nQuoted: {{quote}}\n{{/quote}}\nTwo", {});
+    expect(result.ok && result.text).toBe("One\nTwo");
+  });
+
+  it("leaves a mid-sentence branch unchanged", () => {
+    const template = "Might not be relevant{{#first_name}} {{first_name}}{{/first_name}}, but";
+
+    const named = render(template, { first_name: "Paul" });
+    expect(named.ok && named.text).toBe("Might not be relevant Paul, but");
+
+    const anonymous = render(template, {});
+    expect(anonymous.ok && anonymous.text).toBe("Might not be relevant, but");
+  });
+});

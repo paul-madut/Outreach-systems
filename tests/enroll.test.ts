@@ -348,6 +348,37 @@ describe("createNextStep", () => {
     });
   });
 
+  // The scenario this guards: payments outreach is moved off Paul's personal
+  // iCloud address onto a domain bought for it, while conversations are open.
+  // A "Re:" arriving from a different sender splits the thread and reads as a
+  // stranger butting in, so the follow-up stays on the address that started it.
+  it("sends a follow-up from the mailbox that started the thread, not the campaign's current one", () => {
+    const enrollment = enrolAndSend();
+
+    const other = db
+      .prepare(
+        `insert into mailboxes
+           (label, from_name, from_email, provider, smtp_host, smtp_user,
+            imap_host, imap_user, keychain_service, keychain_account, timezone)
+         values ('pwp-1', 'Paul Madut', 'paul@paulecom.com', 'gmail',
+                 'smtp.gmail.com', 'paul@paulecom.com',
+                 'imap.gmail.com', 'paul@paulecom.com',
+                 'gmail-smtp-outreach', 'paul@paulecom.com', 'UTC')`
+      )
+      .run();
+    db.prepare("update campaigns set mailbox_id = ? where id = ?").run(
+      other.lastInsertRowid,
+      campaignId
+    );
+
+    createNextStep(db, enrollment.id, { now: NOW, rng: rng() });
+
+    const step2 = db
+      .prepare("select mailbox_id from messages where step_number = 2")
+      .get() as { mailbox_id: number };
+    expect(step2.mailbox_id).toBe(mailboxId);
+  });
+
   it("queues step 2 threaded onto step 1", () => {
     const enrollment = enrolAndSend();
     const outcome = createNextStep(db, enrollment.id, { now: NOW, rng: rng() });

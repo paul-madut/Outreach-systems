@@ -6,6 +6,7 @@ import {
   getMailbox,
   getStep,
   lintPolicyOf,
+  threadMailboxId,
   threadsFollowUps,
   windowOf,
 } from "@/lib/campaign";
@@ -156,7 +157,9 @@ export function createNextStep(
     return skip(`${previous.to_email} is suppressed by ${suppression.kind} "${suppression.value}".`);
   }
 
-  const mailbox = getMailbox(db, campaign.mailbox_id);
+  // A follow-up leaves from whichever mailbox started the thread, not from
+  // whichever one the campaign points at today. See `threadMailboxId`.
+  const mailbox = getMailbox(db, threadMailboxId(db, enrollmentId) ?? campaign.mailbox_id);
   const context = contextFor(db, enrollment.contact_id, mailbox.from_name, mailbox.from_email);
   const rendered = renderMessage(step.subject_template, step.body_template, context);
 

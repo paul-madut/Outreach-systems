@@ -41,13 +41,51 @@ export function openDb(path: string): Db {
 }
 
 /**
- * The schema is written to be idempotent, so applying it on every open is the
- * whole migration story. A personal tool with one user does not need version
- * tracking, and `create table if not exists` cannot lose data.
+ * Columns added to a table that already exists.
+ *
+ * `create table if not exists` does nothing to a database created before the
+ * column was written, so anything added after the first real send needs an
+ * entry here as well as in schema.sql. Each definition must carry a constant
+ * default if it is NOT NULL, which is all SQLite's ALTER TABLE accepts.
+ */
+const ADDED_COLUMNS: { table: string; column: string; definition: string }[] = [
+  { table: "mailboxes", column: "warmup_started_on", definition: "text" },
+  {
+    table: "mailboxes",
+    column: "warmup_start_cap",
+    definition: "integer not null default 5",
+  },
+  {
+    table: "mailboxes",
+    column: "warmup_daily_increment",
+    definition: "integer not null default 2",
+  },
+  { table: "inbound_messages", column: "notified_at", definition: "text" },
+  { table: "mailboxes", column: "pause_notified_at", definition: "text" },
+];
+
+function addMissingColumns(db: Db): void {
+  for (const { table, column, definition } of ADDED_COLUMNS) {
+    const present = db
+      .prepare("select 1 from pragma_table_info(?) where name = ?")
+      .get(table, column);
+
+    if (present) continue;
+    db.exec(`alter table ${table} add column ${column} ${definition}`);
+  }
+}
+
+/**
+ * The schema is written to be idempotent, so applying it on every open is most
+ * of the migration story. A personal tool with one user does not need version
+ * tracking, and `create table if not exists` cannot lose data. The one thing
+ * it cannot do is widen a table that already exists, which is what
+ * `addMissingColumns` is for.
  */
 export function migrate(db: Db): void {
   const schema = readFileSync(join(HERE, "schema.sql"), "utf8");
   db.exec(schema);
+  addMissingColumns(db);
 }
 
 export function closeDb(): void {

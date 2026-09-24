@@ -22,6 +22,8 @@ import { withLock, LockHeldError } from "@/lib/worker/lock";
 import { sweepOrphans } from "@/lib/worker/claim";
 import { isLive, runSendTick } from "@/lib/worker/send-tick";
 import { pollAllMailboxes } from "@/lib/worker/poll-mailbox";
+import { notifyInbound } from "@/lib/worker/notify-inbound";
+import { notifyMailboxPauses } from "@/lib/worker/notify-mailbox";
 
 loadLocalEnv();
 
@@ -76,6 +78,19 @@ async function main(): Promise<void> {
       );
       for (const note of result.notes) log(`  ${note}`);
     }
+
+    // After polling, so a reply is in the database before it is announced.
+    const alerts = await notifyInbound(db);
+    if (alerts.sent > 0) log(`slack: ${alerts.sent} notification(s) sent`);
+    for (const note of alerts.notes) log(`  ${note}`);
+  }
+
+  // Outside the sendOnly guard: a mailbox pausing mid-send is exactly when
+  // this needs to go out, and a send-only run is where that happens.
+  {
+    const paused = await notifyMailboxPauses(db);
+    if (paused.sent > 0) log(`slack: ${paused.sent} pause notification(s) sent`);
+    for (const note of paused.notes) log(`  ${note}`);
   }
 }
 

@@ -58,6 +58,27 @@ export function addSuppression(
   return result.changes > 0;
 }
 
+/**
+ * Unblock something.
+ *
+ * Needed because suppressions are not all human decisions. `mailbox check-mx`
+ * adds one when a domain returns NXDOMAIN, and NXDOMAIN is not always
+ * permanent - asicminermarket.com returned it on 2026-09-22 and resolved
+ * normally two days later. Without a way back, one bad reading loses a
+ * prospect for good.
+ *
+ * Returns false when nothing was blocked under that value, so a caller can
+ * tell "unblocked it" from "there was nothing to unblock".
+ */
+export function removeSuppression(db: Db, kind: SuppressionKind, rawValue: string): boolean {
+  const value = kind === "email" ? normalizeEmail(rawValue) : normalizeDomain(rawValue);
+  if (!value) return false;
+
+  return (
+    db.prepare("delete from suppressions where kind = ? and value = ?").run(kind, value).changes > 0
+  );
+}
+
 /** Whether an address is blocked, by itself or by its domain. */
 export function findSuppression(db: Db, rawEmail: string): SuppressionHit | null {
   const email = normalizeEmail(rawEmail);

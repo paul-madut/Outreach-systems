@@ -436,3 +436,36 @@ describe("curt refusals", () => {
     expect(result.classification).toBe("reply");
   });
 });
+
+describe("a refusal followed by a signature block", () => {
+  // Verbatim shape of what ws@aretehemp.com sent on 2026-09-23. It was filed
+  // as an ordinary reply and the address was never suppressed, so the opt-out
+  // went unhonoured. One word, then five lines of signature.
+  const withSignature = [
+    "Stop",
+    "",
+    "",
+    "Alejandro Sepulveda | Distribution Manager | Arete Enterprises LLC |",
+    "Mobile # 828-424-0011 | Office # 828-547-4405 | https://aretehemp.com/",
+    "",
+    "This email and any files transmitted with it are confidential and intended",
+    "solely for the use of the individual to whom they are addressed.",
+  ].join("\n");
+
+  it("is an unsubscribe, not a reply", () => {
+    const result = classifyInbound(message({ text: withSignature }));
+    expect(result.classification).toBe("unsubscribe");
+  });
+
+  it("suppresses the sender", () => {
+    const result = classifyInbound(message({ text: withSignature, from: "ws@aretehemp.com" }));
+    expect(result.suppress).toBe("ws@aretehemp.com");
+  });
+
+  it("still lets a real reply that merely uses the word through", () => {
+    const result = classifyInbound(
+      message({ text: "We had to stop taking cards in March, so yes this is relevant.\n\nRegards,\nSam" })
+    );
+    expect(result.classification).toBe("reply");
+  });
+});

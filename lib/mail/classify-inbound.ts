@@ -183,6 +183,15 @@ function findUnsubscribeIntent(message: InboundMessage): string | null {
     return unquoted;
   }
 
+  // The refusal is often one word followed by a corporate signature block:
+  // "Stop" and then name, title, company, two phone numbers and a
+  // confidentiality notice. Measuring the whole body misses every one of
+  // those, and missing one means emailing somebody who plainly said no.
+  const firstLine = unquoted.split(/\r?\n/).find((line) => line.trim() !== "")?.trim() ?? "";
+  if (firstLine.length <= CURT_REFUSAL_MAX_CHARS && CURT_REFUSAL.test(firstLine)) {
+    return firstLine;
+  }
+
   return null;
 }
 

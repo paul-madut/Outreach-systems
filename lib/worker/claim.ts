@@ -1,6 +1,7 @@
 import type { Db } from "@/lib/db";
 import { nowIso, parseJson, toIso } from "@/lib/db";
 import { isoDayOfWeek, localDateOf, parseLocalTime, toInstant } from "@/lib/schedule/tz";
+import { effectiveDailyCap } from "@/lib/schedule/warmup";
 
 /**
  * Claiming work.
@@ -33,6 +34,9 @@ interface MailboxRow {
   id: number;
   timezone: string;
   daily_cap: number;
+  warmup_started_on: string | null;
+  warmup_start_cap: number;
+  warmup_daily_increment: number;
   min_gap_seconds: number;
   gap_jitter_seconds: number;
   next_send_after: string | null;
@@ -123,7 +127,8 @@ export function claimDueMessages(db: Db, options: ClaimOptions = {}): ClaimedMes
   const claim = db.transaction((): ClaimedMessage[] => {
     const mailboxes = db
       .prepare(
-        `select id, timezone, daily_cap, min_gap_seconds, gap_jitter_seconds, next_send_after
+        `select id, timezone, daily_cap, min_gap_seconds, gap_jitter_seconds, next_send_after,
+                warmup_started_on, warmup_start_cap, warmup_daily_increment
            from mailboxes
           where status = 'active'
             and (next_send_after is null or next_send_after <= ?)
@@ -136,7 +141,11 @@ export function claimDueMessages(db: Db, options: ClaimOptions = {}): ClaimedMes
     for (const mailbox of mailboxes) {
       if (claimed.length >= limit) break;
 
-      const room = Math.min(mailbox.daily_cap - usedToday(db, mailbox, now), limit - claimed.length);
+      // The ramp lowers today's ceiling for a young mailbox. Enforced here,
+      // inside the same transaction as the cap, so it cannot be bypassed by
+      // any other path into the queue.
+      const capToday = effectiveDailyCap(mailbox, now);
+      const room = Math.min(capToday - usedToday(db, mailbox, now), limit - claimed.length);
       if (room <= 0) continue;
 
       // Follow-ups first. A step 2 slipping past its slot is worse than a step

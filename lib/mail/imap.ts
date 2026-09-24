@@ -24,7 +24,9 @@ function toDate(value: Date | string | null | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export async function connect(mailbox: MailboxRow, password: string): Promise<ImapFlow> {
+export type ImapTarget = Pick<MailboxRow, "imap_host" | "imap_port" | "imap_user">;
+
+export async function connect(mailbox: ImapTarget, password: string): Promise<ImapFlow> {
   const client = new ImapFlow({
     host: mailbox.imap_host,
     port: mailbox.imap_port,

@@ -10,6 +10,7 @@
  *   pnpm campaign preview --campaign "high-risk payments"
  *   pnpm campaign enroll  --campaign "high-risk payments" [--grade A] [--limit 20] [--commit]
  *   pnpm campaign activate|pause --campaign "high-risk payments"
+ *   pnpm campaign move --campaign "high-risk payments" --mailbox pwp-1
  *
  * A step whose subject and body are literally {{subject}} and {{body}} sends
  * the draft written per row in the sheet. Anything else is a shared template.
@@ -19,6 +20,7 @@ import { getDb } from "@/lib/db";
 import {
   createCampaign,
   getCampaign,
+  moveCampaign,
   listSteps,
   setCampaignStatus,
   upsertStep,
@@ -291,6 +293,48 @@ function setStatus(args: string[], status: "active" | "paused"): void {
   console.log(`Campaign "${name}" is now ${status}.`);
 }
 
+/**
+ * Send a campaign from a different mailbox.
+ *
+ * Queued mail moves with it, because `messages.mailbox_id` is fixed when the
+ * row is rendered and would otherwise keep going out from the old address.
+ * Anything belonging to a conversation that has already started stays put.
+ */
+function move(args: string[]): void {
+  const name = flag(args, "campaign");
+  const label = flag(args, "mailbox");
+  if (!name || !label) {
+    console.error("Need --campaign and --mailbox.");
+    process.exit(1);
+  }
+
+  const db = getDb();
+  const campaignId = campaignIdFor(name);
+
+  const mailbox = db
+    .prepare("select id, from_email from mailboxes where label = ?")
+    .get(label) as { id: number; from_email: string } | undefined;
+  if (!mailbox) {
+    console.error(`No mailbox labelled "${label}". Run pnpm mailbox list.`);
+    process.exit(1);
+  }
+
+  const result = moveCampaign(db, campaignId, mailbox.id);
+
+  console.log(`"${name}" now sends from ${label} <${mailbox.from_email}>.`);
+  console.log(`  ${plural(result.moved, "queued message")} moved with it.`);
+  if (result.keptOnThread > 0) {
+    console.log(
+      `  ${plural(result.keptOnThread, "follow-up")} stayed behind: the thread started from the`
+    );
+    console.log(`  old address, and a reply from a new one would read as a stranger.`);
+  }
+}
+
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
 const [command, ...args] = process.argv.slice(2);
 
 switch (command) {
@@ -316,7 +360,12 @@ switch (command) {
   case "pause":
     setStatus(args, "paused");
     break;
+  case "move":
+    move(args);
+    break;
   default:
-    console.error(`Unknown command "${command}". Try list, create, step, preview, enroll, activate or pause.`);
+    console.error(
+      `Unknown command "${command}". Try list, create, step, preview, enroll, activate, pause or move.`
+    );
     process.exit(1);
 }

@@ -44,6 +44,16 @@ create table if not exists mailboxes (
 
   timezone           text    not null default 'America/Toronto',
   daily_cap          integer not null default 20 check (daily_cap > 0),
+
+  -- The sending ramp. A new domain has no reputation, so the cap starts low
+  -- and climbs by `warmup_daily_increment` each local day until it reaches
+  -- `daily_cap`, which stays the ceiling. Null start date means no ramp.
+  -- Evaluated in lib/schedule/warmup.ts, never here: the day boundary is the
+  -- mailbox's local one, and SQL has no idea what timezone that is.
+  warmup_started_on      text,
+  warmup_start_cap       integer not null default 5 check (warmup_start_cap >= 0),
+  warmup_daily_increment integer not null default 2 check (warmup_daily_increment >= 0),
+
   min_gap_seconds    integer not null default 120 check (min_gap_seconds >= 0),
   gap_jitter_seconds integer not null default 60 check (gap_jitter_seconds >= 0),
   -- Pushed forward after every claim. This is what paces a mailbox without
@@ -290,6 +300,10 @@ create table if not exists inbound_messages (
   dsn_status            text,
   handled               integer not null default 0 check (handled in (0, 1)),
 
+  -- When this was announced in Slack. Null means it still owes a notification,
+  -- which is what makes a Slack outage recoverable: the next poll retries it.
+  notified_at           text,
+
   created_at            text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
@@ -379,3 +393,76 @@ create trigger if not exists messages_touch after update on messages
 begin
   update messages set updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') where id = new.id;
 end;
+
+-- --------------------------------------------------- placement testing
+
+-- Mailboxes you own that exist only to receive test mail. Separate from
+-- `mailboxes` on purpose: these never send, carry no pacing, and a seed at a
+-- provider you do not send from is still worth having.
+create table if not exists seed_inboxes (
+  id               integer primary key,
+  label            text    not null unique,
+  email            text    not null,
+  provider         text    not null default 'custom',
+
+  imap_host        text    not null,
+  imap_port        integer not null default 993,
+  imap_user        text    not null,
+  keychain_service text    not null,
+  keychain_account text    not null,
+
+  status           text    not null default 'active'
+                     check (status in ('active', 'paused')),
+
+  created_at       text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- One send from one sending mailbox to every active seed.
+create table if not exists placement_tests (
+  id         integer primary key,
+  mailbox_id integer not null references mailboxes (id) on delete cascade,
+
+  -- Unique marker in the subject. Searching for it at the seed is how the
+  -- message is found again, and it is visible to a human reading the mailbox.
+  token      text    not null unique,
+  subject    text    not null,
+
+  sent_at    text,
+  status     text    not null default 'pending'
+               check (status in ('pending', 'sent', 'complete', 'failed')),
+  error      text,
+
+  created_at text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+create index if not exists placement_tests_mailbox_idx on placement_tests (mailbox_id);
+
+-- Where that message landed at one seed, and what the receiver concluded
+-- about its authentication. The verdicts are the receiver's own, read out of
+-- its Authentication-Results header, not recomputed here.
+create table if not exists placement_results (
+  id               integer primary key,
+  test_id          integer not null references placement_tests (id) on delete cascade,
+  seed_id          integer not null references seed_inboxes (id) on delete cascade,
+
+  -- How the message is found again at the seed. Providers preserve it, and
+  -- IMAP can search on it, so the test message needs no marker of its own.
+  message_id       text    not null,
+  sent_at          text,
+
+  placement        text    check (placement in ('inbox', 'spam', 'missing')),
+  folder           text,
+
+  -- Whether the message carried an Authentication-Results header at all.
+  -- Null until checked, 0 when no receiver ever ran the checks.
+  auth_present     integer check (auth_present in (0, 1)),
+  spf              text,
+  dkim             text,
+  dmarc            text,
+  verifier         text,
+
+  delivery_seconds integer,
+  checked_at       text,
+
+  unique (test_id, seed_id)
+);

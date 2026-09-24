@@ -25,17 +25,52 @@ const FIELD = /\{\{\s*([a-zA-Z0-9_]+)\s*(?:\|([^}]*))?\}\}/g;
  * broken without one. Without sections the only options are a template that
  * fails to render for half the list, or one so generic it says nothing.
  */
-const SECTION = /\{\{([#^])\s*([a-zA-Z0-9_]+)\s*\}\}\n?([\s\S]*?)\{\{\/\s*\2\s*\}\}\n?/g;
+const SECTION = /\{\{([#^])\s*([a-zA-Z0-9_]+)\s*\}\}(\n?)([\s\S]*?)\{\{\/\s*\2\s*\}\}(\n?)/g;
+
+/**
+ * Whether a section owns the lines it sits on.
+ *
+ * A section written on its own lines is structural: dropping it should take
+ * its blank line with it, or the template grows a gap. A section sitting
+ * inside a line is not - it is a branch within a sentence, like the two
+ * halves of a greeting:
+ *
+ *   {{#first_name}}Hi {{first_name}},{{/first_name}}{{^first_name}}Hello,{{/first_name}}
+ *
+ * Swallowing the newline after the losing branch there pulls the next
+ * paragraph up onto the greeting's line.
+ */
+function ownsItsLine(whole: string, offset: number, length: number, trailingNewline: string): boolean {
+  const startsLine = offset === 0 || whole[offset - 1] === "\n";
+  const endsLine = trailingNewline === "\n" || offset + length === whole.length;
+  return startsLine && endsLine;
+}
 
 /** Nesting is allowed, so this runs until nothing changes. */
 function expandSections(template: string, context: TemplateContext): string {
   let output = template;
 
   for (let pass = 0; pass < 10; pass += 1) {
-    const next = output.replace(SECTION, (_match, kind: string, key: string, inner: string) => {
-      const present = Boolean(context[key]?.trim());
-      return (kind === "#" ? present : !present) ? inner : "";
-    });
+    const next = output.replace(
+      SECTION,
+      (
+        match: string,
+        kind: string,
+        key: string,
+        openNewline: string,
+        inner: string,
+        closeNewline: string,
+        offset: number,
+        whole: string
+      ) => {
+        const present = Boolean(context[key]?.trim());
+        const keep = kind === "#" ? present : !present;
+        const standalone = ownsItsLine(whole, offset, match.length, closeNewline);
+
+        if (!keep) return standalone ? "" : closeNewline;
+        return standalone ? inner : openNewline + inner + closeNewline;
+      }
+    );
 
     if (next === output) break;
     output = next;
