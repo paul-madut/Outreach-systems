@@ -25,6 +25,18 @@ describe("the system prompt", () => {
     expect(SYSTEM_PROMPT).toContain("Never an em dash or an en dash");
   });
 
+  // A reply to a job-outreach message written as a payments consultant is
+  // worse than no reply, so the persona comes from the campaign rather than
+  // being baked in.
+  it("names both kinds of outreach rather than assuming one", () => {
+    expect(SYSTEM_PROMPT).toMatch(/payments consulting/);
+    expect(SYSTEM_PROMPT).toMatch(/looking for fintech work/);
+  });
+
+  it("rules out a reply that only acknowledges", () => {
+    expect(SYSTEM_PROMPT).toContain("is not a reply; it is a read receipt");
+  });
+
   it("forbids inventing facts about the prospect's business", () => {
     expect(SYSTEM_PROMPT).toMatch(/Never invent facts/);
   });

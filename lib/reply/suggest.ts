@@ -109,7 +109,11 @@ export async function suggestReply(db: Db, inboundId: number): Promise<Suggestio
 
   // Run the draft through the same linter as any outgoing message. An em dash
   // from a model is exactly as unwelcome as one from a template.
-  return { attempt, body, model, findings: lintMessage("", body) };
+  // A reply carries no subject of its own, so the subject rules do not apply
+  // and an empty-subject finding is noise reported as a blocker.
+  const findings = lintMessage("", body).filter((finding) => finding.rule !== "empty-subject");
+
+  return { attempt, body, model, findings };
 }
 
 /**

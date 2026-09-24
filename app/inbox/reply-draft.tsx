@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { LintFinding } from "@/lib/template/lint";
-import { suggestReplyAction } from "../actions";
+import { listSuggestionsAction, suggestReplyAction } from "../actions";
 import { buttonClass } from "../ui";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,22 @@ export function ReplyDraft({ inboundId }: { inboundId: number }) {
   const [shown, setShown] = useState(0);
   const [draft, setDraft] = useState("");
   const [pending, startTransition] = useTransition();
+
+  // Drafts outlive the page they were written on. Without this, a reload
+  // hides work that is still in the database and the only way back to it is
+  // to pay for it again.
+  useEffect(() => {
+    let live = true;
+    void listSuggestionsAction(inboundId).then((stored) => {
+      if (!live || stored.length === 0) return;
+      setAttempts(stored.map((row) => ({ ...row, findings: [] })));
+      setShown(stored.length - 1);
+      setDraft(stored[stored.length - 1].body);
+    });
+    return () => {
+      live = false;
+    };
+  }, [inboundId]);
 
   const generate = () =>
     startTransition(async () => {
